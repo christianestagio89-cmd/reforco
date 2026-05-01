@@ -53,7 +53,7 @@ var DLABELS=["Segunda","Ter\u00e7a","Quarta","Quinta","Sexta","S\u00e1bado"];
 var GRADES=["9\u00ba Ano","1\u00ba Ano EM","2\u00ba Ano EM","3\u00ba Ano EM"];
 var SUBS=["Matem\u00e1tica","Portugu\u00eas","Reda\u00e7\u00e3o","Hist\u00f3ria","Geografia","F\u00edsica","Qu\u00edmica","Biologia","Ingl\u00eas","Filosofia","Sociologia","Arte","Outro"];
 var G="#16a34a",GD="#0a2e0f";
-var S={screen:"home",student:null,weekStart:"",db:null,tab:"week",tTab:"alunos",tRT:"tema",sRT:"filmes",exp:null,editW:false,search:"",gf:"",sabExp:null,sabModo:"provas",atvExp:null,novaAtvAlunos:{},novaAtvOpen:false};
+var S={screen:"home",student:null,weekStart:"",db:null,tab:"week",tTab:"alunos",tRT:"tema",sRT:"filmes",exp:null,editW:false,search:"",gf:"",sabExp:null,sabModo:"provas",atvExp:null,novaAtvAlunos:{},novaAtvOpen:false,histSem:null,rankOpen:false};
 var _fl;
 
 function today(){return new Date().toISOString().split("T")[0];}
@@ -200,7 +200,7 @@ function renderStudent(){
   var mh="";
   if(tema.titulo)mh+="<div class='card' style='border-left:4px solid "+G+";background:#f0fdf4;margin-bottom:12px'><div style='font-size:11px;font-weight:700;color:"+G+";letter-spacing:2px;margin-bottom:6px'>TEMA DA SEMANA</div><div style='font-weight:800;font-size:17px;color:"+GD+"'>"+tema.titulo+"</div>"+(tema.tipo?"<div style='margin-top:6px'>"+pill(tema.tipo,G)+"</div>":"")+(tema.contexto?"<div style='font-size:13px;color:#555;margin-top:8px;line-height:1.6'>"+tema.contexto+"</div>":"")+"</div>";
   if(mr.correcao)mh+="<div class='card' style='border-left:4px solid #3b82f6;background:#eff6ff;margin-bottom:12px'><div style='font-size:11px;font-weight:700;color:#3b82f6;letter-spacing:2px;margin-bottom:6px'>&#9999; CORRE&#199;&#195;O DO PROFESSOR</div><div style='font-size:13px;color:#1e40af;line-height:1.7;white-space:pre-wrap'>"+mr.correcao+"</div></div>";
-  mh+="<div class='card'><div style='font-weight:700;font-size:14px;color:"+GD+";margin-bottom:14px'>&#9997; Minha Reda&#231;&#227;o</div><select class='sel' id='rTipo' style='margin-bottom:10px'><option value=''>Tipo de texto</option>"+topts+"</select><textarea class='textarea' id='rTexto' placeholder='Digite sua reda&#231;&#227;o...' style='margin-bottom:10px'>"+(mr.texto||"")+"</textarea><div style='font-size:11px;font-weight:700;color:#666;letter-spacing:1px;margin-bottom:6px'>OU ENVIE FOTO</div><input type='file' id='rFoto' accept='image/*' capture='environment' onchange='uploadFoto()' style='margin-bottom:10px;font-size:13px'>"+(mr.foto?"<img src='"+mr.foto+"' style='width:100%;max-height:250px;object-fit:contain;border-radius:8px;margin-bottom:10px'>":"")+"<button class='btn btn-green' onclick='saveRedacao()'>&#128190; Salvar Reda&#231;&#227;o</button></div>";
+  mh+="<div class='card'><div style='font-weight:700;font-size:14px;color:"+GD+";margin-bottom:14px'>&#9997; Minha Reda&#231;&#227;o</div><select class='sel' id='rTipo' style='margin-bottom:10px'><option value=''>Tipo de texto</option>"+topts+"</select><textarea class='textarea' id='rTexto' placeholder='Digite sua reda&#231;&#227;o...' style='margin-bottom:10px'>"+(mr.texto||"")+"</textarea><div style='font-size:11px;font-weight:700;color:#666;letter-spacing:1px;margin-bottom:6px'>OU ENVIE FOTO</div><input type='file' id='rFoto' accept='image/*' onchange='uploadFoto()' style='margin-bottom:10px;font-size:13px'>"+(mr.foto?"<img src='"+mr.foto+"' style='width:100%;max-height:250px;object-fit:contain;border-radius:8px;margin-bottom:10px'>":"")+"<button class='btn btn-green' onclick='saveRedacao()'>&#128190; Salvar Reda&#231;&#227;o</button></div>";
   var rtc=S.sRT==="filmes"?fh:S.sRT==="dicas"?dh:mh;
   var rh="<div class='tabs' style='margin-bottom:14px'>";
   [["filmes","&#127916; Filmes"],["dicas","&#128161; Dicas"],["minha","&#9997; Minha Reda&#231;&#227;o"]].forEach(function(x){rh+="<button class='tab' onclick=\"set({sRT:'"+x[0]+"'})\" style='background:"+(S.sRT===x[0]?GD:"#fff")+";color:"+(S.sRT===x[0]?"#fff":"#555")+"'>"+x[1]+"</button>";});
@@ -256,7 +256,7 @@ function renderStudent(){
           atvHtml+="<div style='font-size:11px;font-weight:800;color:#7c3aed;letter-spacing:1px;margin-bottom:10px'>&#128221; ENVIAR RESPOSTA:</div>";
           atvHtml+="<textarea id='rta_"+ak+"' class='textarea' placeholder='Digite sua resposta...' style='min-height:80px;margin-bottom:10px'></textarea>";
           atvHtml+="<div style='font-size:11px;font-weight:700;color:#888;margin-bottom:6px'>OU ENVIE FOTO:</div>";
-          atvHtml+="<input type='file' accept='image/*' capture='environment' id='rfoto_"+ak+"' onchange='uploadRespFoto(\""+ak+"\")' style='margin-bottom:10px;font-size:12px'>";
+          atvHtml+="<input type='file' accept='image/*' id='rfoto_"+ak+"' onchange='uploadRespFoto(\""+ak+"\")' style='margin-bottom:10px;font-size:12px'>";
           atvHtml+="<button class='btn btn-purple btn-sm' onclick='enviarResposta(\""+ak+"\")'>Enviar Resposta &#9658;</button></div>";
         }
         atvHtml+="</div>";
@@ -271,8 +271,31 @@ function renderStudent(){
   if(an)html+="<div style='background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;padding:12px 16px;margin-bottom:14px;border-radius:12px'><div style='font-weight:700;font-size:13px'>&#128226; "+an.titulo+"</div><div style='font-size:12px;margin-top:4px;opacity:.9'>"+an.mensagem+"</div></div>";
   html+="<div class='g2'><div class='card' style='text-align:center;padding:14px;margin-bottom:0'><div style='font-size:30px;font-weight:800;color:"+G+"'>"+studied+"</div><div style='font-size:10px;color:#888;letter-spacing:1px'>DIAS ESTUDADOS</div></div><div class='card' style='text-align:center;padding:14px;margin-bottom:0'><div style='font-size:30px;font-weight:800;color:#f59e0b'>"+upcoming.length+"</div><div style='font-size:10px;color:#888;letter-spacing:1px'>PROVAS FUTURAS</div></div></div>";
   html+="<div class='tabs'>";
-  [["week","&#128197; Semana"],["exams","&#128221; Provas"],["atividades","&#9997; Atividades"],["redacao","&#9997; Reda\u00e7\u00e3o"]].forEach(function(x){html+="<button class='tab' onclick=\"set({tab:'"+x[0]+"'})\" style='background:"+(S.tab===x[0]?G:"#fff")+";color:"+(S.tab===x[0]?"#fff":"#555")+"'>"+x[1]+"</button>";});
-  html+="</div>"+(S.tab==="week"?wh:S.tab==="exams"?eh:S.tab==="atividades"?atvHtml:rh)+"</div></div>";
+  [["week","&#128197; Semana"],["exams","&#128221; Provas"],["atividades","&#9997; Atividades"],["redacao","&#9997; Redação"],["ranking","&#127942; Ranking"]].forEach(function(x){html+="<button class='tab' onclick=\"set({tab:'"+x[0]+"'})\" style='background:"+(S.tab===x[0]?G:"#fff")+";color:"+(S.tab===x[0]?"#fff":"#555")+"'>"+x[1]+"</button>";});
+
+  // Ranking do aluno
+  var rankHtml="";
+  var allRank=calcRanking(S.db?Object.values(S.db.students||{}):[]);
+  var myPos=0;
+  allRank.forEach(function(al,i){if(al.id===st.id)myPos=i+1;});
+  rankHtml+="<div style='background:linear-gradient(135deg,#b45309,#f59e0b);border-radius:16px;padding:18px;margin-bottom:16px;color:#fff'>";
+  rankHtml+="<div style='font-size:11px;letter-spacing:3px;opacity:.8;margin-bottom:4px'>SEU</div>";
+  rankHtml+="<div style='font-weight:900;font-size:22px'>&#127942; Ranking de Dedicação</div>";
+  rankHtml+="<div style='margin-top:10px;background:rgba(255,255,255,.2);border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:center'>";
+  rankHtml+="<div style='font-size:13px'>Sua posição</div>";
+  rankHtml+="<div style='font-size:28px;font-weight:900'>"+myPos+"º</div></div></div>";
+  allRank.forEach(function(al,i){
+    var isMe=al.id===st.id;
+    var medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":"&#128197;";
+    var cor=isMe?"#f59e0b":i<3?"#fef9c3":"#f8faff";
+    rankHtml+="<div style='display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:"+cor+";border-radius:12px;margin-bottom:6px;border:1px solid "+(isMe?"#f59e0b":"#eee")+";font-weight:"+(isMe?"800":"600")+"'>";
+    rankHtml+="<div style='display:flex;align-items:center;gap:10px'><span style='font-size:20px'>"+medal+"</span>";
+    rankHtml+="<div><div style='font-size:13px;color:#1e1b4b'>"+(isMe?"&#11088; Você":""+al.nome)+"</div>";
+    rankHtml+="<div style='font-size:11px;color:#888'>"+al.grade+"</div></div></div>";
+    rankHtml+="<div style='font-size:18px;font-weight:900;color:#f59e0b'>"+al.pts+"<span style='font-size:10px;color:#aaa;font-weight:400'> pts</span></div></div>";
+  });
+
+  html+="</div>"+(S.tab==="week"?wh:S.tab==="exams"?eh:S.tab==="atividades"?atvHtml:S.tab==="ranking"?rankHtml:rh)+"</div></div>";
   return html;
 }
 
@@ -333,7 +356,7 @@ function renderParent(){
           atvHtml+="<div style='font-size:11px;font-weight:800;color:#7c3aed;letter-spacing:1px;margin-bottom:10px'>&#128221; ENVIAR RESPOSTA:</div>";
           atvHtml+="<textarea id='rta_"+ak+"' class='textarea' placeholder='Digite sua resposta...' style='min-height:80px;margin-bottom:10px'></textarea>";
           atvHtml+="<div style='font-size:11px;font-weight:700;color:#888;margin-bottom:6px'>OU ENVIE FOTO:</div>";
-          atvHtml+="<input type='file' accept='image/*' capture='environment' id='rfoto_"+ak+"' onchange='uploadRespFoto(\""+ak+"\")' style='margin-bottom:10px;font-size:12px'>";
+          atvHtml+="<input type='file' accept='image/*' id='rfoto_"+ak+"' onchange='uploadRespFoto(\""+ak+"\")' style='margin-bottom:10px;font-size:12px'>";
           atvHtml+="<button class='btn btn-purple btn-sm' onclick='enviarResposta(\""+ak+"\")'>Enviar Resposta &#9658;</button></div>";
         }
         atvHtml+="</div>";
@@ -364,12 +387,57 @@ function renderParent(){
   if(mr.texto||mr.foto){
     html+="<div class='card'><div style='font-weight:700;font-size:14px;color:"+GD+";margin-bottom:10px'>&#9997; Reda&#231;&#227;o</div>"+(mr.tipo?"<div style='margin-bottom:8px'>"+pill(mr.tipo,G)+"</div>":"")+(mr.texto?"<div style='font-size:13px;color:#333;line-height:1.7;white-space:pre-wrap'>"+mr.texto.substring(0,300)+(mr.texto.length>300?"...":"")+"</div>":"")+(mr.foto?"<img src='"+mr.foto+"' style='width:100%;max-height:200px;object-fit:contain;border-radius:8px;margin-top:8px'>":"")+(mr.correcao?"<div style='margin-top:10px;background:#eff6ff;border-radius:8px;padding:10px;font-size:12px;color:#1e40af'><b>&#9999; Corre&#231;&#227;o:</b><br>"+mr.correcao+"</div>":"")+"</div>";
   }
+
+  // Ranking no responsável
+  var allRankP=calcRanking(S.db?Object.values(S.db.students||{}):[]);
+  var myPosP=0;
+  allRankP.forEach(function(al,i){if(al.id===st.id)myPosP=i+1;});
+  html+="<div class='card' style='border-left:4px solid #f59e0b;margin-bottom:12px'>";
+  html+="<div style='font-weight:800;font-size:14px;color:#b45309;margin-bottom:10px'>&#127942; Posição no Ranking</div>";
+  html+="<div style='display:flex;align-items:center;justify-content:space-between'>";
+  html+="<div style='font-size:28px;font-weight:900;color:#f59e0b'>"+myPosP+"º <span style='font-size:13px;color:#888'>de "+allRankP.length+"</span></div>";
+  var medalP=myPosP===1?"🥇":myPosP===2?"🥈":myPosP===3?"🥉":"&#128197;";
+  html+="<div style='font-size:40px'>"+medalP+"</div></div>";
+  html+="<div style='font-size:12px;color:#888;margin-top:8px'>Baseado em dias estudados e redação enviada</div></div>";
+
+  // Notificação de correção disponível
+  if(mr.correcao){
+    html+="<div class='card' style='border-left:4px solid #2563eb;background:#eff6ff;margin-bottom:12px'>";
+    html+="<div style='font-weight:800;font-size:13px;color:#1e40af;margin-bottom:6px'>&#9999; Correção de Redação Disponível!</div>";
+    html+="<div style='font-size:12px;color:#1e40af'>O professor já corrigiu a redação. Veja na aba do aluno!</div></div>";
+  }
+
+  // Atividades pendentes
+  var ativDB2=S.db&&S.db.atividades?S.db.atividades:{};
+  var pendAtv=Object.values(ativDB2).filter(function(atv){
+    if(atv.alunosAlvo&&Object.keys(atv.alunosAlvo).length&&!atv.alunosAlvo[st.id])return false;
+    return !atv.respostas||!atv.respostas[st.id];
+  });
+  if(pendAtv.length){
+    html+="<div class='card' style='border-left:4px solid #7c3aed;background:#faf5ff;margin-bottom:12px'>";
+    html+="<div style='font-weight:800;font-size:13px;color:#4c1d95;margin-bottom:6px'>&#128203; "+pendAtv.length+" Atividade"+(pendAtv.length>1?"s":"")+" Pendente"+(pendAtv.length>1?"s":"")+"</div>";
+    pendAtv.forEach(function(atv){
+      html+="<div style='font-size:12px;color:#555;padding:4px 0;border-bottom:1px solid #ede9fe'>&#8226; "+atv.titulo+"</div>";
+    });
+    html+="</div>";
+  }
+
   html+="</div></div>";
   return html;
 }
 
 function renderTL(){
-  return "<div style='min-height:100vh;background:#f5f7ff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px'><button onclick=\"go('home')\" style='position:absolute;top:20px;left:20px;background:none;border:none;font-size:22px;cursor:pointer'>&#8592;</button><div style='width:100%;max-width:340px'><div style='text-align:center;margin-bottom:28px'><div style='font-size:48px'>&#128272;</div><div style='font-size:22px;font-weight:800;color:"+GD+";margin-top:8px'>Acesso do Professor</div></div><div class='card'><div style='font-size:11px;font-weight:700;color:#666;letter-spacing:1.5px;margin-bottom:8px'>SENHA</div><input type='password' class='inp' id='tPass' placeholder='&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;' onkeydown='if(event.key===\"Enter\")tLogin()' style='margin-bottom:6px' autofocus><div id='tErr' style='color:#ef4444;font-size:12px;margin-bottom:8px;display:none'>&#10060; Senha incorreta.</div><button class='btn btn-green' onclick='tLogin()' style='margin-top:8px'>Entrar &#8594;</button></div></div></div>";
+  return "<div style='min-height:100vh;background:#f5f7ff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px'>" +
+    "<button onclick='go(\"home\")'  style='position:absolute;top:20px;left:20px;background:none;border:none;font-size:22px;cursor:pointer'>&#8592;</button>" +
+    "<div style='width:100%;max-width:340px'>" +
+    "<div style='text-align:center;margin-bottom:28px'><div style='font-size:48px'>&#128272;</div>" +
+    "<div style='font-size:22px;font-weight:800;color:"+GD+";margin-top:8px'>Acesso do Professor</div></div>" +
+    "<div class='card'>" +
+    "<div style='font-size:11px;font-weight:700;color:#666;letter-spacing:1.5px;margin-bottom:8px'>SENHA</div>" +
+    "<input type='password' class='inp' id='tPass' placeholder='Digite a senha' style='margin-bottom:12px'>" +
+    "<div id='tErr' style='color:#ef4444;font-size:12px;margin-bottom:8px;display:none'>&#10060; Senha incorreta.</div>" +
+    "<button class='btn btn-green' onclick='tLogin()' style='width:100%;margin-top:4px'>Entrar &#8594;</button>" +
+    "</div></div></div>";
 }
 
 function renderTeacher(){
@@ -432,7 +500,7 @@ function renderTeacher(){
           atvHtml+="<div style='font-size:11px;font-weight:800;color:#7c3aed;letter-spacing:1px;margin-bottom:10px'>&#128221; ENVIAR RESPOSTA:</div>";
           atvHtml+="<textarea id='rta_"+ak+"' class='textarea' placeholder='Digite sua resposta...' style='min-height:80px;margin-bottom:10px'></textarea>";
           atvHtml+="<div style='font-size:11px;font-weight:700;color:#888;margin-bottom:6px'>OU ENVIE FOTO:</div>";
-          atvHtml+="<input type='file' accept='image/*' capture='environment' id='rfoto_"+ak+"' onchange='uploadRespFoto(\""+ak+"\")' style='margin-bottom:10px;font-size:12px'>";
+          atvHtml+="<input type='file' accept='image/*' id='rfoto_"+ak+"' onchange='uploadRespFoto(\""+ak+"\")' style='margin-bottom:10px;font-size:12px'>";
           atvHtml+="<button class='btn btn-purple btn-sm' onclick='enviarResposta(\""+ak+"\")'>Enviar Resposta &#9658;</button></div>";
         }
         atvHtml+="</div>";
@@ -455,7 +523,7 @@ function renderTeacher(){
 
   // Tabs
   html+="<div class='tabs' style='margin-top:14px'>";
-  [["alunos","&#128101; Alunos"],["provas","&#128221; Provas"],["sabado","&#128197; S\u00e1bado"],["pendentes","&#9888; ("+pend.length+")"],["notif","&#128226; Avisos"],["redacao","&#9997; Reda\u00e7\u00e3o"]].forEach(function(x){html+="<button class='tab' onclick=\"set({tTab:'"+x[0]+"'})\" style='background:"+(S.tTab===x[0]?GD:"#fff")+";color:"+(S.tTab===x[0]?"#fff":"#555")+"'>"+x[1]+"</button>";});
+  [["alunos","&#128101; Alunos"],["provas","&#128221; Provas"],["sabado","&#128197; Sábado"],["pendentes","&#9888; ("+pend.length+")"],["notif","&#128226; Avisos"],["redacao","&#9997; Redação"],["ranking","&#127942; Ranking"],["historico","&#128337; Histórico"]].forEach(function(x){html+="<button class='tab' onclick=\"set({tTab:'"+x[0]+"'})\" style='background:"+(S.tTab===x[0]?GD:"#fff")+";color:"+(S.tTab===x[0]?"#fff":"#555")+"'>"+x[1]+"</button>";});
   html+="<button class='tab' onclick='loadT()' style='background:#fff;color:#555;border:1px solid #e0e4ee'>&#128260;</button>";
   html+="</div>";
 
@@ -758,6 +826,63 @@ function renderTeacher(){
     }
   }
 
+
+  // ===== RANKING =====
+  if(S.tTab==="ranking"){
+    var rank=calcRanking(sts);
+    html+="<div style='background:linear-gradient(135deg,#b45309,#f59e0b);border-radius:16px;padding:18px;margin-bottom:16px;color:#fff'>";
+    html+="<div style='font-size:11px;letter-spacing:3px;opacity:.8;margin-bottom:4px'>PAINEL DE</div>";
+    html+="<div style='font-weight:900;font-size:22px'>&#127942; Ranking de Dedicação</div>";
+    html+="<div style='font-size:12px;opacity:.8;margin-top:4px'>Baseado em dias estudados e redação</div></div>";
+    rank.forEach(function(al,i){
+      var medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":"&#128197;";
+      var cor=i===0?"#f59e0b":i===1?"#94a3b8":i===2?"#b45309":"#e5e7eb";
+      html+="<div class='card' style='border-left:4px solid "+cor+";margin-bottom:8px;display:flex;align-items:center;justify-content:space-between'>";
+      html+="<div style='display:flex;align-items:center;gap:12px'>";
+      html+="<div style='font-size:24px'>"+medal+"</div>";
+      html+="<div><div style='font-weight:800;font-size:14px;color:#1e1b4b'>"+al.nome+"</div>";
+      html+="<div style='font-size:11px;color:#888'>"+al.grade+"</div></div></div>";
+      html+="<div style='text-align:right'><div style='font-size:20px;font-weight:900;color:#f59e0b'>"+al.pts+"</div><div style='font-size:10px;color:#aaa'>pontos</div></div></div>";
+    });
+  }
+
+  // ===== HISTÓRICO =====
+  if(S.tTab==="historico"){
+    var hist=data.historico||[];
+    html+="<div style='background:linear-gradient(135deg,#1e40af,#3b82f6);border-radius:16px;padding:18px;margin-bottom:16px;color:#fff'>";
+    html+="<div style='font-size:11px;letter-spacing:3px;opacity:.8;margin-bottom:4px'>ARQUIVO DE</div>";
+    html+="<div style='font-weight:900;font-size:22px'>&#128337; Histórico de Semanas</div>";
+    html+="<div style='font-size:12px;opacity:.8;margin-top:4px'>Registro de todas as semanas anteriores</div></div>";
+    if(!hist.length){
+      html+="<div class='card' style='text-align:center;padding:40px;color:#bbb'><div style='font-size:36px'>&#128337;</div><div style='margin-top:8px;font-weight:700'>Nenhuma semana arquivada ainda</div><div style='font-size:12px;margin-top:4px'>O histórico é salvo automaticamente ao reiniciar a semana</div></div>";
+    } else {
+      hist.forEach(function(sem,idx){
+        var isOpen=S.histSem===idx;
+        var total=Object.keys(sem.alunos||{}).length;
+        var ativos=Object.values(sem.alunos||{}).filter(function(a){return a.dias>0;}).length;
+        html+="<div class='card' style='margin-bottom:10px'>";
+        html+="<div style='cursor:pointer' onclick=\"set({histSem:"+(isOpen?"null":idx)+"})\"><div style='display:flex;justify-content:space-between;align-items:center'>";
+        html+="<div><div style='font-weight:800;font-size:14px;color:#1e1b4b'>Semana de "+fmtS(sem.semana)+"</div>";
+        html+="<div style='font-size:11px;color:#888;margin-top:2px'>Arquivada em "+fmtS(sem.data)+"</div></div>";
+        html+="<div style='display:flex;gap:8px;align-items:center'>";
+        html+="<span class='pill' style='background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe'>"+ativos+"/"+total+" ativos</span>";
+        html+="<span style='color:#bbb'>"+(isOpen?"&#9650;":"&#9660;")+"</span></div></div></div>";
+        if(isOpen){
+          html+="<div style='margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0'>";
+          var alunosHist=Object.values(sem.alunos||{}).sort(function(a,b){return b.dias-a.dias;});
+          alunosHist.forEach(function(al){
+            html+="<div style='display:flex;justify-content:space-between;padding:8px 10px;background:#f8faff;border-radius:8px;margin-bottom:4px'>";
+            html+="<span style='font-weight:700;font-size:13px;color:#1e1b4b'>"+al.nome+"</span>";
+            html+="<span style='font-size:12px;color:#888'>"+al.dias+" dias estudados</span></div>";
+          });
+          html+="<button onclick='delHistorico("+idx+")' class='btn btn-sm' style='background:#fee2e2;color:#ef4444;border:none;margin-top:10px'>&#128465; Apagar esta semana do histórico</button>";
+          html+="</div>";
+        }
+        html+="</div>";
+      });
+    }
+  }
+
   if(S.tTab==="pendentes"){
     if(!pend.length) html+="<div class='card' style='text-align:center;padding:40px;color:#bbb'><div style='font-size:36px'>&#127881;</div><div style='margin-top:8px;font-weight:700'>Todos preencheram!</div></div>";
     else pend.forEach(function(st){html+="<div class='card' style='border-left:4px solid #f59e0b'><div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px'><div><div style='font-weight:700;font-size:15px;color:"+GD+"'>"+st.name+"</div><div style='font-size:11px;color:#888'>"+st.grade+"</div></div><span style='font-size:22px'>&#128245;</span></div><div style='background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px;font-size:12px;color:#555;font-style:italic'>&#128172; \"Oi "+st.name.split(" ")[0]+"! N&#227;o esque&#231;a de preencher o di&#225;rio da semana &#128522;\"</div></div>";});
@@ -870,7 +995,7 @@ function criarAtvManual(){
         S.db=d;
         _linksBuf['novaAtv']=[];
         set({novaAtvAlunos:{},novaAtvOpen:false});
-        showFlash('Atividade criada e enviada! ✓');
+        addNotifAuto('📋 Nova atividade disponível!');showFlash('Atividade criada e enviada! ✓');
       });
     });
   });
@@ -977,9 +1102,24 @@ var _respFotoBuf={};
 function uploadRespFoto(ak){
   var file=document.getElementById('rfoto_'+ak).files[0];
   if(!file)return;
-  if(file.size>1500000){showFlash('Foto muito grande!','#ef4444');return;}
-  showFlash('Carregando foto...','#f59e0b');
-  var r=new FileReader();r.onload=function(e){_respFotoBuf[ak]=e.target.result;showFlash('Foto pronta! Clique em Enviar.');};r.readAsDataURL(file);
+  showFlash('Comprimindo foto...','#f59e0b');
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var maxW=1200,maxH=1600;
+      var w=img.width,h=img.height;
+      if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+      if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
+      var canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      _respFotoBuf[ak]=canvas.toDataURL('image/jpeg',0.75);
+      showFlash('Foto pronta! Clique em Enviar. ♥');
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function enviarResposta(ak){
@@ -992,7 +1132,7 @@ function enviarResposta(ak){
     if(!data.atividades[ak].respostas)data.atividades[ak].respostas={};
     data.atividades[ak].respostas[st.id]={texto:texto,foto:foto,data:today()};
     dbSet('atividades/'+ak,data.atividades[ak]).then(function(){
-      S.db=data;_respFotoBuf[ak]='';showFlash('Resposta enviada! ♥');render();
+      S.db=data;_respFotoBuf[ak]='';showFlash('Atividade enviada com sucesso! O professor já pode ver ♥');render();
     });
   });
 }
@@ -1100,7 +1240,7 @@ function saveRedacao(){
   st.redacao.tipo=document.getElementById("rTipo").value||"";
   dbSaveSt(st.id,st).then(function(){
     S.student=st;
-    dbLoad().then(function(data){S.db=data;showFlash("Reda\u00e7\u00e3o enviada! \u2665");render();});
+    dbLoad().then(function(data){S.db=data;showFlash("Sua redação foi enviada! O professor já pode ver ♥");render();});
   });
 }
 
@@ -1112,8 +1252,7 @@ function uploadFoto(){
   reader.onload=function(e){
     var img=new Image();
     img.onload=function(){
-      // Comprimir para no máximo 800px de largura
-      var maxW=800,maxH=1200;
+      var maxW=1200,maxH=1600;
       var w=img.width,h=img.height;
       if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
       if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
@@ -1121,8 +1260,7 @@ function uploadFoto(){
       canvas.width=w;canvas.height=h;
       var ctx=canvas.getContext("2d");
       ctx.drawImage(img,0,0,w,h);
-      // Qualidade 0.7 para manter tamanho pequeno
-      var compressed=canvas.toDataURL("image/jpeg",0.7);
+      var compressed=canvas.toDataURL("image/jpeg",0.75);
       var st=S.student;if(!st.redacao)st.redacao={};
       st.redacao.foto=compressed;
       dbSaveSt(st.id,st).then(function(){
@@ -1150,11 +1288,62 @@ function saveWS(){
   dbSet("weekStart",ws).then(function(){dbLoad().then(function(data){S.db=data;S.editW=false;render();});});
 }
 
-function resetW(){
-  if(!confirm("Reiniciar semana de todos?\n\nEstudos apagados. Provas e reda\u00e7\u00f5es mantidas."))return;
+
+
+
+function delHistorico(idx){
+  if(!confirm('Apagar esta semana do histórico?'))return;
   dbLoad().then(function(data){
+    var hist=data.historico||[];
+    hist.splice(idx,1);
+    db.ref('reforco/historico').set(hist).then(function(){
+      dbLoad().then(function(d){S.db=d;showFlash('Semana removida!','#ef4444');render();});
+    });
+  });
+}
+
+function calcRanking(sts){
+  var rank=[];
+  sts.forEach(function(st){
+    var pts=0;
+    DAYS.forEach(function(d){
+      var x=st.week&&st.week[d];
+      if(x&&x.subjects&&x.subjects.length)pts+=x.subjects.length;
+    });
+    if(st.redacao&&(st.redacao.texto||st.redacao.foto))pts+=3;
+    rank.push({nome:st.name,grade:st.grade,pts:pts,id:st.id});
+  });
+  return rank.sort(function(a,b){return b.pts-a.pts;});
+}
+
+function addNotifAuto(msg){
+  dbLoad().then(function(data){
+    var notifs=data.notificacoes||[];
+    notifs.unshift({id:Date.now(),msg:msg,ativa:true,lidas:{},data:today()});
+    if(notifs.length>20)notifs=notifs.slice(0,20);
+    db.ref('reforco/notificacoes').set(notifs).then(function(){
+      dbLoad().then(function(d){S.db=d;render();});
+    });
+  });
+}
+
+function resetW(){
+  if(!confirm("Reiniciar semana de todos?\n\nOs estudos desta semana ser\u00e3o salvos no hist\u00f3rico antes de limpar."))return;
+  dbLoad().then(function(data){
+    // Salvar histórico da semana atual
+    var hist=data.historico||[];
+    var semData={semana:data.weekStart||today(),data:today(),alunos:{}};
+    Object.keys(data.students||{}).forEach(function(id){
+      var st=data.students[id];
+      var dias=0;DAYS.forEach(function(d){if(st.week&&st.week[d]&&st.week[d].subjects&&st.week[d].subjects.length)dias++;});
+      semData.alunos[id]={nome:st.name,grade:st.grade,dias:dias};
+    });
+    hist.unshift(semData);
+    if(hist.length>12)hist=hist.slice(0,12); // guardar até 12 semanas
+    db.ref('reforco/historico').set(hist);
+    // Limpar semana
     Object.keys(data.students||{}).forEach(function(id){data.students[id].week={};});
-    dbSet("students",data.students).then(function(){S.db=data;showFlash("Semana reiniciada!");render();});
+    dbSet("students",data.students).then(function(){S.db=data;showFlash("Semana reiniciada! Histórico salvo ♥");render();});
   });
 }
 
@@ -1224,7 +1413,7 @@ function saveTema(){
   dbLoad().then(function(data){
     if(!data.redacao)data.redacao={filmes:[],dicas:[],tema:{}};
     data.redacao.tema={titulo:titulo,tipo:tipo,contexto:contexto};
-    dbSet("redacao",data.redacao).then(function(){S.db=data;showFlash("Tema salvo!");render();});
+    dbSet("redacao",data.redacao).then(function(){S.db=data;addNotifAuto("📝 Novo tema de redação postado!");showFlash("Tema salvo!");render();});
   });
 }
 

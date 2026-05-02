@@ -85,7 +85,15 @@ function render(){
   else if(S.screen==="student")r.innerHTML=renderStudent();
   else if(S.screen==="pl")r.innerHTML=renderPL();
   else if(S.screen==="parent")r.innerHTML=renderParent();
-  else if(S.screen==="tl")r.innerHTML=renderTL();
+  else if(S.screen==="tl"){
+    r.innerHTML=renderTL();
+    var _bp=document.getElementById('btnProf');
+    var _bb=document.getElementById('btnBack');
+    var _tp=document.getElementById('tPass');
+    if(_bp)_bp.addEventListener('click',tLogin);
+    if(_bb)_bb.addEventListener('click',function(){go('home');});
+    if(_tp)_tp.addEventListener('keydown',function(e){if(e.key==='Enter')tLogin();});
+  }
   else if(S.screen==="teacher")r.innerHTML=renderTeacher();
 }
 
@@ -430,7 +438,7 @@ function renderParent(){
 }
 
 function renderTL(){
-  return "<div style='min-height:100vh;background:#f5f7ff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px'><button onclick=\"go('home')\" style='position:absolute;top:20px;left:20px;background:none;border:none;font-size:22px;cursor:pointer'>&#8592;</button><div style='width:100%;max-width:340px'><div style='text-align:center;margin-bottom:28px'><div style='font-size:48px'>&#128272;</div><div style='font-size:22px;font-weight:800;color:"+GD+";margin-top:8px'>Acesso do Professor</div></div><div class='card'><div style='font-size:11px;font-weight:700;color:#666;letter-spacing:1.5px;margin-bottom:8px'>SENHA</div><input type='password' class='inp' id='tPass' placeholder='&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;' onkeydown='if(event.key===\"Enter\")tLogin()' style='margin-bottom:6px' autofocus><div id='tErr' style='color:#ef4444;font-size:12px;margin-bottom:8px;display:none'>&#10060; Senha incorreta.</div><button class='btn btn-green' onclick='tLogin()' style='margin-top:8px'>Entrar &#8594;</button></div></div></div>";
+  return "<div style='min-height:100vh;background:#f5f7ff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px'><button onclick=\"go('home')\" style='position:absolute;top:20px;left:20px;background:none;border:none;font-size:22px;cursor:pointer'>&#8592;</button><div style='width:100%;max-width:340px'><div style='text-align:center;margin-bottom:28px'><div style='font-size:48px'>&#128272;</div><div style='font-size:22px;font-weight:800;color:"+GD+";margin-top:8px'>Acesso do Professor</div></div><div class='card'><div style='font-size:11px;font-weight:700;color:#666;letter-spacing:1.5px;margin-bottom:8px'>SENHA</div><input type='password' class='inp' id='tPass' placeholder='&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;' onkeydown='if(event.key===\"Enter\")tLogin()' style='margin-bottom:6px' autofocus><div id='tErr' style='color:#ef4444;font-size:12px;margin-bottom:8px;display:none'>&#10060; Senha incorreta.</div><button class='btn btn-green' id='btnProf' style='width:100%;margin-top:8px'>Entrar &#8594;</button></div></div></div>";
 }
 
 

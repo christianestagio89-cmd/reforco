@@ -1264,7 +1264,7 @@ function uploadFoto(){
   reader.readAsDataURL(file);
 }
 
-window.tLogin=function(){
+function tLogin(){
   var pass=document.getElementById("tPass").value;
   if(pass===TPASS){loadT();}else{document.getElementById("tErr").style.display="block";document.getElementById("tPass").value="";}
 }

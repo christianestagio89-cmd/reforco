@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teste Login Professor</title>
+<style>
+body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f7ff;margin:0;}
+.card{background:#fff;border-radius:16px;padding:24px;width:300px;box-shadow:0 2px 12px rgba(0,0,0,.1);}
+input{width:100%;padding:12px;border-radius:8px;border:1.5px solid #e0e6ee;font-size:14px;box-sizing:border-box;margin-bottom:10px;}
+button{width:100%;padding:12px;border-radius:8px;border:none;background:#16a34a;color:#fff;font-size:14px;font-weight:700;cursor:pointer;}
+.err{color:#ef4444;font-size:12px;display:none;margin-bottom:8px;}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2 style="text-align:center;margin-bottom:20px">🔐 Acesso do Professor</h2>
+  <input type="password" id="tPass" placeholder="Digite a senha">
+  <div id="tErr" class="err">❌ Senha incorreta.</div>
+  <button id="btnEntrar">Entrar →</button>
+</div>
+<script>
+var TPASS = "1234";
+
+document.getElementById('btnEntrar').addEventListener('click', function() {
+  var pass = document.getElementById('tPass').value;
+  if(pass === TPASS) {
+    alert('LOGIN OK! Funcionou!');
+  } else {
+    document.getElementById('tErr').style.display = 'block';
+    document.getElementById('tPass').value = '';
+  }
+});
+
+document.getElementById('tPass').addEventListener('keydown', function(e) {
+  if(e.key === 'Enter') {
+    document.getElementById('btnEntrar').click();
+  }
+});
+</script>
+</body>
+</html>

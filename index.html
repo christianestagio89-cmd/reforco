@@ -82,16 +82,7 @@ function render(){
   else if(S.screen==="student")r.innerHTML=renderStudent();
   else if(S.screen==="pl")r.innerHTML=renderPL();
   else if(S.screen==="parent")r.innerHTML=renderParent();
-  else if(S.screen==="tl"){r.innerHTML=renderTL();
-    setTimeout(function(){
-      var btnP=document.getElementById('btnEntrarProf');
-      if(btnP)btnP.addEventListener('click',function(){tLogin();});
-      var btnV=document.getElementById('btnVoltar');
-      if(btnV)btnV.addEventListener('click',function(){go('home');});
-      var tp=document.getElementById('tPass');
-      if(tp)tp.addEventListener('keydown',function(e){if(e.key==='Enter')tLogin();});
-    },50);
-  }
+  else if(S.screen==="tl")r.innerHTML=renderTL();
   else if(S.screen==="teacher")r.innerHTML=renderTeacher();
 }
 
@@ -438,15 +429,15 @@ function renderParent(){
 function renderTL(){
   var h='';
   h+='<div style="min-height:100vh;background:#f5f7ff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">';
-  h+='<button id="btnVoltar" style="position:absolute;top:20px;left:20px;background:none;border:none;font-size:22px;cursor:pointer">&#8592;</button>';
+  h+='<button onclick="go(&quot;home&quot;)" style="position:absolute;top:20px;left:20px;background:none;border:none;font-size:22px;cursor:pointer">&#8592;</button>';
   h+='<div style="width:100%;max-width:340px">';
   h+='<div style="text-align:center;margin-bottom:28px"><div style="font-size:48px">&#128272;</div>';
   h+='<div style="font-size:22px;font-weight:800;color:'+GD+';margin-top:8px">Acesso do Professor</div></div>';
   h+='<div class="card">';
   h+='<div style="font-size:11px;font-weight:700;color:#666;letter-spacing:1.5px;margin-bottom:8px">SENHA</div>';
-  h+='<input type="password" class="inp" id="tPass" placeholder="Digite a senha" style="margin-bottom:12px">';
+  h+='<input type="password" class="inp" id="tPass" placeholder="Digite a senha" style="margin-bottom:12px" onkeydown="if(event.key===&quot;Enter&quot;)tLogin()">';
   h+='<div id="tErr" style="color:#ef4444;font-size:12px;margin-bottom:8px;display:none">&#10060; Senha incorreta.</div>';
-  h+='<button id="btnEntrarProf" class="btn btn-green" style="width:100%;margin-top:4px">Entrar &#8594;</button>';
+  h+='<button onclick="tLogin()" class="btn btn-green" style="width:100%;margin-top:4px">Entrar &#8594;</button>';
   h+='</div></div></div>';
   return h;
 }
@@ -1284,7 +1275,7 @@ function uploadFoto(){
   reader.readAsDataURL(file);
 }
 
-function tLogin(){
+window.tLogin=function(){
   var pass=document.getElementById("tPass").value;
   if(pass===TPASS){loadT();}else{document.getElementById("tErr").style.display="block";document.getElementById("tPass").value="";}
 }

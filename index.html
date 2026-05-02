@@ -96,7 +96,7 @@ function renderHome(){
   "<div style='width:100%;max-width:340px'>"+
   "<button class='hbtn' onclick=\"go('sl')\" style='background:"+G+";color:#fff;box-shadow:0 6px 24px "+G+"55'><span style='font-size:26px'>&#127891;</span><div><div>Sou Aluno</div><div style='font-size:11px;font-weight:400;opacity:.8;margin-top:2px'>Registrar minha semana</div></div></button>"+
   "<button class='hbtn' onclick=\"go('pl')\" style='background:rgba(255,255,255,0.15);color:#fff;border:2px solid rgba(255,255,255,0.3)'><span style='font-size:26px'>&#128106;</span><div><div>Sou Respons&#225;vel</div><div style='font-size:11px;font-weight:400;opacity:.8;margin-top:2px'>Acompanhar meu filho</div></div></button>"+
-  "<button class='hbtn' onclick=\"go('tl')\" style='background:rgba(255,255,255,0.08);color:#fff;border:2px solid rgba(255,255,255,0.15)'><span style='font-size:26px'>&#128104;&#8205;&#127979;</span><div><div>Sou Professor</div><div style='font-size:11px;font-weight:400;opacity:.8;margin-top:2px'>Painel de acompanhamento</div></div></button>"+
+  "<button class='hbtn' onclick=\"loadT()\" style='background:rgba(255,255,255,0.08);color:#fff;border:2px solid rgba(255,255,255,0.15)'><span style='font-size:26px'>&#128104;&#8205;&#127979;</span><div><div>Sou Professor</div><div style='font-size:11px;font-weight:400;opacity:.8;margin-top:2px'>Painel de acompanhamento</div></div></button>"+
   "</div></div>";
 }
 
@@ -427,9 +427,18 @@ function renderParent(){
 }
 
 function renderTL(){
-  return "<div style='min-height:100vh;background:#f5f7ff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px'><button onclick=\"go('home')\" style='position:absolute;top:20px;left:20px;background:none;border:none;font-size:22px;cursor:pointer'>&#8592;</button><div style='width:100%;max-width:340px'><div style='text-align:center;margin-bottom:28px'><div style='font-size:48px'>&#128272;</div><div style='font-size:22px;font-weight:800;color:"+GD+";margin-top:8px'>Acesso do Professor</div></div><div class='card'><div style='font-size:11px;font-weight:700;color:#666;letter-spacing:1.5px;margin-bottom:8px'>SENHA</div><input type='password' class='inp' id='tPass' placeholder='&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;' onkeydown='if(event.key===\"Enter\")tLogin()' style='margin-bottom:6px' autofocus><div id='tErr' style='color:#ef4444;font-size:12px;margin-bottom:8px;display:none'>&#10060; Senha incorreta.</div><button class='btn btn-green' onclick='tLogin()' style='margin-top:8px'>Entrar &#8594;</button></div></div></div>";
+  return "<div style='min-height:100vh;background:#f5f7ff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px'>" +
+    "<button onclick='go(\"home\")'  style='position:absolute;top:20px;left:20px;background:none;border:none;font-size:22px;cursor:pointer'>&#8592;</button>" +
+    "<div style='width:100%;max-width:340px'>" +
+    "<div style='text-align:center;margin-bottom:28px'><div style='font-size:48px'>&#128272;</div>" +
+    "<div style='font-size:22px;font-weight:800;color:"+GD+";margin-top:8px'>Acesso do Professor</div></div>" +
+    "<div class='card'>" +
+    "<div style='font-size:11px;font-weight:700;color:#666;letter-spacing:1.5px;margin-bottom:8px'>SENHA</div>" +
+    "<input type='password' class='inp' id='tPass' placeholder='Digite a senha' style='margin-bottom:12px'>" +
+    "<div id='tErr' style='color:#ef4444;font-size:12px;margin-bottom:8px;display:none'>&#10060; Senha incorreta.</div>" +
+    "<button class='btn btn-green' onclick='tLogin()' style='width:100%;margin-top:4px'>Entrar &#8594;</button>" +
+    "</div></div></div>";
 }
-
 
 function renderTeacher(){
   var data=S.db;
@@ -1148,11 +1157,6 @@ function enviarFeedback(ak,stId){
   });
 }
 
-window.tLogin=tLogin;
-window.go=go;
-window.sLogin=sLogin;
-window.loginExisting=loginExisting;
-window.loginParent=loginParent;
 function init(){dbLoad().then(function(data){S.db=data;S.weekStart=data.weekStart||today();render();});}
 
 function sLogin(){

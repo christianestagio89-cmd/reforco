@@ -50,7 +50,7 @@ firebase.initializeApp({
   appId:"1:647673712019:web:79bfb0cd02a2fe04952c66"
 });
 var db=firebase.database();
-var TPASS="reforco123",PPASS="reforco2026";
+var TPASS="1234",PPASS="reforco2026";
 var DAYS=["Segunda","Terca","Quarta","Quinta","Sexta","Sabado"];
 var DLABELS=["Segunda","Ter\u00e7a","Quarta","Quinta","Sexta","S\u00e1bado"];
 var GRADES=["9\u00ba Ano","1\u00ba Ano EM","2\u00ba Ano EM","3\u00ba Ano EM"];
@@ -1151,6 +1151,16 @@ function enviarFeedback(ak,stId){
   });
 }
 
+window.tLogin=tLogin;
+window.go=go;
+window.sLogin=sLogin;
+window.loginExisting=loginExisting;
+window.loginParent=loginParent;
+window.tLogin=tLogin;
+window.go=go;
+window.sLogin=sLogin;
+window.loginExisting=loginExisting;
+window.loginParent=loginParent;
 function init(){dbLoad().then(function(data){S.db=data;S.weekStart=data.weekStart||today();render();});}
 
 function sLogin(){

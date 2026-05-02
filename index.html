@@ -83,12 +83,14 @@ function render(){
   else if(S.screen==="pl")r.innerHTML=renderPL();
   else if(S.screen==="parent")r.innerHTML=renderParent();
   else if(S.screen==="tl"){r.innerHTML=renderTL();
-    var btnP=document.getElementById('btnEntrarProf');
-    if(btnP)btnP.onclick=function(){tLogin();};
-    var btnV=document.getElementById('btnVoltar');
-    if(btnV)btnV.onclick=function(){go('home');};
-    var tp=document.getElementById('tPass');
-    if(tp)tp.onkeydown=function(e){if(e.key==='Enter')tLogin();};
+    setTimeout(function(){
+      var btnP=document.getElementById('btnEntrarProf');
+      if(btnP)btnP.addEventListener('click',function(){tLogin();});
+      var btnV=document.getElementById('btnVoltar');
+      if(btnV)btnV.addEventListener('click',function(){go('home');});
+      var tp=document.getElementById('tPass');
+      if(tp)tp.addEventListener('keydown',function(e){if(e.key==='Enter')tLogin();});
+    },50);
   }
   else if(S.screen==="teacher")r.innerHTML=renderTeacher();
 }

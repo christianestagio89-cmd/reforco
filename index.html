@@ -1157,7 +1157,14 @@ function enviarFeedback(ak,stId){
   });
 }
 
-function init(){dbLoad().then(function(data){S.db=data;S.weekStart=data.weekStart||today();render();});}
+function init(){
+  // Acesso direto do professor via URL
+  if(window.location.search.indexOf('prof=cl2024')!==-1){
+    dbLoad().then(function(data){S.db=data;S.weekStart=data.weekStart||today();loadT();});
+    return;
+  }
+  dbLoad().then(function(data){S.db=data;S.weekStart=data.weekStart||today();render();});
+}
 
 function sLogin(){
   var name=document.getElementById("sName").value.trim();

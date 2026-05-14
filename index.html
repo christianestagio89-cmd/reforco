@@ -187,9 +187,20 @@ function renderRedacaoAluno(st){
       mh+="<div class='card' style='border-left:4px solid "+(temCorr?"#16a34a":"#f59e0b")+";margin-bottom:10px'>";
       mh+="<div style='cursor:pointer' onclick=\"set({redExpAluno:'"+(isOpen?"":red.id)+"'})\">";
       mh+="<div style='display:flex;justify-content:space-between;align-items:center'>";
-      mh+="<div><div style='font-weight:800;font-size:13px;color:#1e1b4b'>Redação "+(sorted.length-idx)+(red.tipo?" · "+red.tipo:"")+"</div>";
-      mh+="<div style='font-size:11px;color:#888;margin-top:2px'>Enviada em "+fmtS(red.data||today())+notaStr+"</div></div>";
-      mh+="<div style='display:flex;gap:6px;align-items:center'>";
+      mh+="<div><div style='font-weight:800;font-size:13px;color:#1e1b4b'>Redação "+(sorted.length-idx)+(red.tipo?" · "+red.tipo:"")+"</div>"+(red.tema?"<div style='font-size:11px;color:#16a34a;font-weight:700;margin-top:2px'>&#128203; "+red.tema+"</div>":"");
+      mh+="<div style='font-size:11px;color:#888;margin-top:2px'>Enviada em "+fmtS(red.data||today())+"</div>"+(red.nota!==undefined&&red.nota!==null&&red.nota!==''?"<div style='display:inline-block;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;border-radius:8px;padding:3px 10px;font-weight:900;font-size:13px;margin-top:4px'>"+red.nota+" / 1000</div>":"")+"</div>";
+      // Calcular evolução comparando com redação anterior
+      var evolucaoStr="";
+      if(idx>0&&sorted[idx-1].nota!==undefined&&sorted[idx-1].nota!==""&&red.nota!==undefined&&red.nota!==""){
+        var notaAtual=parseInt(red.nota);var notaAnt=parseInt(sorted[idx-1].nota);
+        if(!isNaN(notaAtual)&&!isNaN(notaAnt)){
+          var diff=notaAtual-notaAnt;
+          if(diff>0)evolucaoStr="<span style='color:#16a34a;font-weight:800;font-size:12px'>▲ +"+diff+" pts</span>";
+          else if(diff<0)evolucaoStr="<span style='color:#ef4444;font-weight:800;font-size:12px'>▼ "+diff+" pts</span>";
+          else evolucaoStr="<span style='color:#888;font-size:12px'>= igual</span>";
+        }
+      }
+      mh+="<div style='display:flex;gap:6px;align-items:center'>"+evolucaoStr;
       if(temCorr)mh+="<span class='pill' style='background:#dcfce7;color:#16a34a;border:1px solid #86efac'>&#10003; Corrigida</span>";
       else mh+="<span class='pill' style='background:#fef9c3;color:#b45309;border:1px solid #fde68a'>Aguardando</span>";
       mh+="<span style='color:#bbb;font-size:14px'>"+(isOpen?"&#9650;":"&#9660;")+"</span></div></div></div>";
@@ -333,10 +344,10 @@ function renderStudent(){
   var html="<div style='min-height:100vh;background:#f5f7ff;padding-bottom:80px'>";
   html+="<div class='header'><button onclick=\"go('home')\" style='background:none;border:none;color:#fff;font-size:18px;cursor:pointer;margin-bottom:6px;display:block;font-family:inherit'>&#8592; Sair</button><div style='text-align:center'><div style='color:#86efac;font-size:11px;letter-spacing:3px'>BEM-VINDO</div><div style='color:#fff;font-size:21px;font-weight:800'>"+st.name+"</div><div style='color:#86efac;font-size:12px;margin-top:4px'>"+st.grade+"</div></div></div>";
   html+="<div class='content'>";
-  if(an)html+="<div style='background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;padding:12px 16px;margin-bottom:14px;border-radius:12px'><div style='font-weight:700;font-size:13px'>&#128226; "+an.titulo+"</div><div style='font-size:12px;margin-top:4px;opacity:.9'>"+an.mensagem+"</div></div>";
+  if(an)html+="<div style='background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;padding:12px 16px;margin-bottom:14px;border-radius:12px'><div style='font-weight:700;font-size:13px'>&#128226; "+(an.titulo||an.msg||'Aviso')+"</div><div style='font-size:12px;margin-top:4px;opacity:.9'>"+(an.mensagem||'')+"</div></div>";
   html+="<div class='g2'><div class='card' style='text-align:center;padding:14px;margin-bottom:0'><div style='font-size:30px;font-weight:800;color:"+G+"'>"+studied+"</div><div style='font-size:10px;color:#888;letter-spacing:1px'>DIAS ESTUDADOS</div></div><div class='card' style='text-align:center;padding:14px;margin-bottom:0'><div style='font-size:30px;font-weight:800;color:#f59e0b'>"+upcoming.length+"</div><div style='font-size:10px;color:#888;letter-spacing:1px'>PROVAS FUTURAS</div></div></div>";
   html+="<div class='tabs'>";
-  [["week","&#128197; Semana"],["exams","&#128221; Provas"],["atividades","&#9997; Atividades"],["redacao","&#128221; Redação"],["ranking","&#127942; Ranking"]].forEach(function(x){html+="<button class='tab' onclick=\"set({tab:'"+x[0]+"'})\" style='background:"+(S.tab===x[0]?G:"#fff")+";color:"+(S.tab===x[0]?"#fff":"#555")+"'>"+x[1]+"</button>";});
+  [["week","&#128197; Semana"],["exams","&#128221; Provas"],["atividades","&#9997; Atividades"],["redacao","&#128221; Redação"],["ranking","&#127942; Ranking"],["rankred","&#128221; Rank Redação"],["temas","&#128203; Temas"]].forEach(function(x){html+="<button class='tab' onclick=\"set({tab:'"+x[0]+"'})\" style='background:"+(S.tab===x[0]?G:"#fff")+";color:"+(S.tab===x[0]?"#fff":"#555")+"'>"+x[1]+"</button>";});
 
   // Ranking do aluno
   var rankHtml="";
@@ -382,7 +393,9 @@ function renderStudent(){
     rankRedHtml+="<div style='text-align:right'><div style='font-size:18px;font-weight:900;color:#7c3aed'>"+(al.melhorNota!==null?al.melhorNota:'--')+"</div><div style='font-size:10px;color:#aaa'>/ 1000</div></div></div>";
   });
 
-  html+="</div>"+(S.tab==="week"?wh:S.tab==="exams"?eh:S.tab==="atividades"?atvHtml:S.tab==="ranking"?(rankHtml+rankRedHtml):rh)+"</div></div>";
+  // Temas para aluno
+var temasHtml=renderTemasAluno();
+html+="</div>"+(S.tab==="week"?wh:S.tab==="exams"?eh:S.tab==="atividades"?atvHtml:S.tab==="ranking"?rankHtml:S.tab==="rankred"?rankRedHtml:S.tab==="temas"?temasHtml:rh)+"</div></div>";
   return html;
 }
 
@@ -507,7 +520,7 @@ function renderTeacher(){
 
   // Tabs
   html+="<div class='tabs' style='margin-top:14px'>";
-  [["alunos","&#128101; Alunos"],["provas","&#128221; Provas"],["sabado","&#128197; Sábado"],["pendentes","&#9888; ("+pend.length+")"],["notif","&#128226; Avisos"],["redacao","&#9997; Redação"],["ranking","&#127942; Ranking"],["historico","&#128337; Histórico"]].forEach(function(x){html+="<button class='tab' onclick=\"set({tTab:'"+x[0]+"'})\" style='background:"+(S.tTab===x[0]?GD:"#fff")+";color:"+(S.tTab===x[0]?"#fff":"#555")+"'>"+x[1]+"</button>";});
+  [["alunos","&#128101; Alunos"],["provas","&#128221; Provas"],["atividades","&#128203; Atividades"],["sabado","&#128197; Sábado"],["pendentes","&#9888; ("+pend.length+")"],["notif","&#128226; Avisos"],["redacao","&#9997; Redação"],["ranking","&#127942; Ranking"],["historico","&#128337; Histórico"]].forEach(function(x){html+="<button class='tab' onclick=\"set({tTab:'"+x[0]+"'})\" style='background:"+(S.tTab===x[0]?GD:"#fff")+";color:"+(S.tTab===x[0]?"#fff":"#555")+"'>"+x[1]+"</button>";});
   html+="<button class='tab' onclick='loadT()' style='background:#fff;color:#555;border:1px solid #e0e4ee'>&#128260;</button>";
   html+="</div>";
 
@@ -542,6 +555,310 @@ function renderTeacher(){
     else ae.forEach(function(e){var d=dl(e.date),c=d<=3?"#ef4444":"#f59e0b",t=d<=0?"Hoje":d===1?"Amanhã":d+"d";html+="<div class='card' style='border-left:4px solid "+c+"'><div style='display:flex;justify-content:space-between;align-items:flex-start'><div><div style='font-weight:700;font-size:14px;color:"+GD+"'>"+e.sn+" <span style='color:#888;font-weight:400;font-size:12px'>· "+e.gr+"</span></div><div style='font-size:13px;color:#555;margin-top:2px'>"+e.subject+(e.topic?" · "+e.topic:"")+"</div><div style='font-size:12px;color:#888;margin-top:4px'>&#128197; "+fmtL(e.date)+"</div></div>"+pill(t,c)+"</div></div>";});
   }
 
+
+  // ===== ABA ATIVIDADES DO PROFESSOR (separada do sábado) =====
+  if(S.tTab==="atividades"){
+    var atvKeys2=Object.keys(ativDB);
+    html+="<button onclick=\"set({novaAtvOpen:!S.novaAtvOpen})\" class='btn' style='background:"+(S.novaAtvOpen?"#f0f0f0":"#7c3aed")+";color:"+(S.novaAtvOpen?"#555":"#fff")+";margin-bottom:14px'>"+(S.novaAtvOpen?"✕ Fechar":"✏️ Nova Atividade")+"</button>";
+    if(S.novaAtvOpen){
+      html+="<div class='card' style='border:2px solid #7c3aed;margin-bottom:16px'>";
+      html+="<div style='font-weight:800;font-size:15px;color:#4c1d95;margin-bottom:14px'>✏️ Nova Atividade</div>";
+      html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1px;margin-bottom:10px'>SELECIONAR ALUNOS:</div>";
+      html+="<div style='display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px'>";
+      sts.forEach(function(st2){
+        var sel2=S.novaAtvAlunos&&S.novaAtvAlunos[st2.id];
+        html+="<div onclick=\"toggleAtvAluno('"+st2.id+"')\" style='cursor:pointer;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;border:2px solid "+(sel2?"#7c3aed":"#e0e4ee")+";background:"+(sel2?"#ede9fe":"#fff")+";color:"+(sel2?"#4c1d95":"#888")+"'>"+st2.name+"</div>";
+      });
+      html+="</div>";
+      html+="<input class='inp' id='novaAtv_titulo' placeholder='Título da atividade' style='margin-bottom:10px'>";
+      html+="<textarea class='textarea' id='novaAtv_enunc' placeholder='Enunciado / Questões...' style='min-height:120px;margin-bottom:10px'></textarea>";
+      html+="<div style='font-size:11px;font-weight:800;color:#555;margin-bottom:8px'>🔗 LINKS DE ESTUDO (opcional):</div>";
+      html+="<div id='links_novaAtv'></div>";
+      html+="<div style='display:flex;gap:8px;margin-bottom:10px'><input class='inp' id='lkurl_novaAtv' placeholder='https://...' style='flex:1'><input class='inp' id='lktit_novaAtv' placeholder='Nome do link' style='flex:1'></div>";
+      html+="<button onclick=\"addLink('novaAtv')\" class='btn btn-sm' style='background:#e0f2fe;color:#0369a1;border:none;margin-bottom:12px'>+ Link</button>";
+      html+="<button onclick=\"criarAtvManual()\" class='btn btn-purple'>📋 Criar e Enviar</button>";
+      html+="</div>";
+    }
+    // Resumo: quantas respondidas vs pendentes
+    var totalAtv=atvKeys2.length;
+    var totalResp=0,totalPend=0;
+    atvKeys2.forEach(function(ak){
+      var atv=ativDB[ak];
+      var alvoIds=atv.alunosAlvo&&Object.keys(atv.alunosAlvo).length?Object.keys(atv.alunosAlvo):sts.map(function(s){return s.id;});
+      var resps=Object.keys(atv.respostas||{}).length;
+      totalResp+=resps;totalPend+=(alvoIds.length-resps);
+    });
+    if(totalAtv>0){
+      html+="<div class='g3' style='margin-bottom:14px'>";
+      html+="<div class='card' style='text-align:center;padding:12px;margin-bottom:0'><div style='font-size:22px;font-weight:800;color:#7c3aed'>"+totalAtv+"</div><div style='font-size:9px;color:#888'>ATIVIDADES</div></div>";
+      html+="<div class='card' style='text-align:center;padding:12px;margin-bottom:0'><div style='font-size:22px;font-weight:800;color:#16a34a'>"+totalResp+"</div><div style='font-size:9px;color:#888'>RESPONDIDAS</div></div>";
+      html+="<div class='card' style='text-align:center;padding:12px;margin-bottom:0'><div style='font-size:22px;font-weight:800;color:#f59e0b'>"+totalPend+"</div><div style='font-size:9px;color:#888'>PENDENTES</div></div>";
+      html+="</div>";
+    }
+    if(!atvKeys2.length){
+      html+="<div class='card' style='text-align:center;padding:40px;color:#bbb'><div style='font-size:36px'>&#128203;</div><div style='margin-top:8px;font-weight:700'>Nenhuma atividade criada ainda</div></div>";
+    } else {
+      atvKeys2.forEach(function(ak){
+        var atv=ativDB[ak];
+        var alvoIds=atv.alunosAlvo&&Object.keys(atv.alunosAlvo).length?Object.keys(atv.alunosAlvo):sts.map(function(s){return s.id;});
+        var resps=atv.respostas||{};
+        var numResps=Object.keys(resps).length;
+        var pendR=alvoIds.length-numResps;
+        var isOpen=S.sabExp==="atv2_"+ak;
+        html+="<div class='card' style='border-left:4px solid #7c3aed;margin-bottom:12px'>";
+        html+="<div style='cursor:pointer' onclick=\"set({sabExp:'"+(isOpen?"":"atv2_"+ak)+"'})\">" ;
+        html+="<div style='display:flex;justify-content:space-between;align-items:flex-start'>";
+        html+="<div style='flex:1'><div style='font-weight:800;font-size:15px;color:#1e1b4b'>"+atv.titulo+"</div>";
+        html+="<div style='font-size:12px;color:#888;margin-top:2px'>"+atv.materia+(atv.assunto?" · "+atv.assunto:"")+"</div></div>";
+        html+="<div style='text-align:right;flex-shrink:0'><div style='font-size:12px;font-weight:800;color:#16a34a'>"+numResps+" respondeu</div><div style='font-size:11px;color:#f59e0b'>"+pendR+" pendente</div>";
+        html+="<div style='font-size:12px;color:#bbb;margin-top:4px'>"+(isOpen?"▲":"▼")+"</div></div></div></div>";
+        if(isOpen){
+          html+="<div style='margin-top:16px;padding-top:16px;border-top:1px solid #f0f4f0'>";
+          html+="<div style='font-size:13px;color:#333;line-height:1.7;background:#f8f8f8;border-radius:10px;padding:12px;margin-bottom:14px;white-space:pre-wrap'>"+atv.enunciado+"</div>";
+          html+="<button onclick=\"delAtv('"+ak+"')\" class='btn btn-sm' style='background:#fee2e2;color:#ef4444;border:none;margin-bottom:14px'>🗑 Remover Atividade</button>";
+          // Responderam
+          var comResp2=alvoIds.filter(function(id){return resps[id];});
+          var semResp2=alvoIds.filter(function(id){return !resps[id];});
+          if(comResp2.length){
+            html+="<div style='font-size:11px;font-weight:800;color:#16a34a;letter-spacing:1px;margin-bottom:10px'>✓ RESPONDERAM ("+comResp2.length+"):</div>";
+            comResp2.forEach(function(stId){
+              var stObj=sts.find(function(s){return s.id===stId;});
+              if(!stObj)return;
+              var resp=resps[stId];
+              var temFb=resp.correcao&&resp.correcao.length>0;
+              html+="<div style='border:2px solid #86efac;border-radius:14px;padding:14px;margin-bottom:12px;background:#f0fdf4'>";
+              html+="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px'>";
+              html+="<div><span style='font-weight:800;color:#1e1b4b;font-size:14px'>"+stObj.name+"</span> <span style='font-size:11px;color:#aaa'>"+stObj.grade+"</span></div>";
+              html+="<span class='pill' style='background:#dcfce7;color:#16a34a;border:1px solid #86efac'>✓ Respondeu</span></div>";
+              if(resp.texto)html+="<div style='font-size:13px;color:#166534;line-height:1.7;white-space:pre-wrap;background:#fff;border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid #86efac'>"+resp.texto+"</div>";
+              if(resp.foto)html+="<img src='"+resp.foto+"' style='width:100%;max-height:300px;object-fit:contain;border-radius:10px;margin-bottom:10px'>";
+              if(temFb)html+="<div style='background:#eff6ff;border-radius:10px;padding:10px;border:1px solid #bfdbfe;margin-bottom:10px'><div style='font-size:11px;font-weight:800;color:#2563eb;margin-bottom:4px'>✏️ FEEDBACK ENVIADO:</div><div style='font-size:13px;color:#1e40af;line-height:1.7'>"+resp.correcao+"</div></div>";
+              html+="<div style='font-size:11px;font-weight:800;color:#555;margin-bottom:6px'>"+(temFb?"✏️ EDITAR FEEDBACK:":"✏️ ESCREVER FEEDBACK:")+"</div>";
+              html+="<textarea id='fb_"+ak+"_"+stId+"' class='textarea' placeholder='Comente a resposta do aluno...' style='min-height:120px;font-size:13px;margin-bottom:10px;border-color:#7c3aed'>"+(resp.correcao||"")+"</textarea>";
+              html+="<button onclick='enviarFeedback(\""+ak+"\",\""+stId+"\")' class='btn btn-blue btn-sm'>✓ "+(temFb?"Atualizar":"Enviar")+" Feedback</button>";
+              html+="</div>";
+            });
+          }
+          if(semResp2.length){
+            html+="<div style='font-size:11px;font-weight:700;color:#f59e0b;letter-spacing:1px;margin:14px 0 8px'>AGUARDANDO RESPOSTA ("+semResp2.length+"):</div>";
+            semResp2.forEach(function(stId){
+              var stObj=sts.find(function(s){return s.id===stId;});
+              if(!stObj)return;
+              html+="<div style='display:flex;justify-content:space-between;padding:10px 14px;background:#fff5f5;border-radius:10px;border:1px solid #fecaca;margin-bottom:6px'>";
+              html+="<span style='font-weight:700;font-size:13px;color:#333'>"+stObj.name+"</span>";
+              html+="<span style='font-size:11px;color:#888'>"+stObj.grade+"</span></div>";
+            });
+          }
+          html+="</div>";
+        }
+        html+="</div>";
+      });
+    }
+  }
+
+  // ===== ABA ATIVIDADES DO PROFESSOR =====
+  if(S.tTab==="atividades"){
+    var atvKeys2=Object.keys(ativDB);
+    html+="<button onclick=\"set({novaAtvOpen:!S.novaAtvOpen})\" class='btn' style='background:"+(S.novaAtvOpen?"#f0f0f0":"#7c3aed")+";color:"+(S.novaAtvOpen?"#555":"#fff")+";margin-bottom:14px'>"+(S.novaAtvOpen?"✕ Fechar":"✏️ Nova Atividade")+"</button>";
+    if(S.novaAtvOpen){
+      html+="<div class='card' style='border:2px solid #7c3aed;margin-bottom:16px'>";
+      html+="<div style='font-weight:800;font-size:15px;color:#4c1d95;margin-bottom:14px'>✏️ Nova Atividade</div>";
+      html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1px;margin-bottom:10px'>SELECIONAR ALUNOS:</div>";
+      html+="<div style='display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px'>";
+      sts.forEach(function(st2){
+        var sel2=S.novaAtvAlunos&&S.novaAtvAlunos[st2.id];
+        html+="<div onclick=\"toggleAtvAluno('"+st2.id+"')\" style='cursor:pointer;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;border:2px solid "+(sel2?"#7c3aed":"#e0e4ee")+";background:"+(sel2?"#ede9fe":"#fff")+";color:"+(sel2?"#4c1d95":"#888")+"'>"+st2.name+"</div>";
+      });
+      html+="</div>";
+      html+="<input class='inp' id='novaAtv_titulo' placeholder='Título da atividade' style='margin-bottom:10px'>";
+      html+="<textarea class='textarea' id='novaAtv_enunc' placeholder='Enunciado...' style='min-height:120px;margin-bottom:10px'></textarea>";
+      html+="<div id='links_novaAtv'></div>";
+      html+="<div style='display:flex;gap:8px;margin-bottom:10px'><input class='inp' id='lkurl_novaAtv' placeholder='https://...' style='flex:1'><input class='inp' id='lktit_novaAtv' placeholder='Nome do link' style='flex:1'></div>";
+      html+="<button onclick=\"addLink('novaAtv')\" class='btn btn-sm' style='background:#e0f2fe;color:#0369a1;border:none;margin-bottom:12px'>+ Link</button>";
+      html+="<button onclick=\"criarAtvManual()\" class='btn btn-purple'>📋 Criar e Enviar</button>";
+      html+="</div>";
+    }
+    var totalResp2=0,totalPend2=0;
+    atvKeys2.forEach(function(ak){
+      var atv=ativDB[ak];
+      var alvoIds=atv.alunosAlvo&&Object.keys(atv.alunosAlvo).length?Object.keys(atv.alunosAlvo):sts.map(function(s){return s.id;});
+      totalResp2+=Object.keys(atv.respostas||{}).length;
+      totalPend2+=(alvoIds.length-Object.keys(atv.respostas||{}).length);
+    });
+    if(atvKeys2.length){
+      html+="<div class='g3' style='margin-bottom:14px'>";
+      html+="<div class='card' style='text-align:center;padding:12px;margin-bottom:0'><div style='font-size:22px;font-weight:800;color:#7c3aed'>"+atvKeys2.length+"</div><div style='font-size:9px;color:#888'>ATIVIDADES</div></div>";
+      html+="<div class='card' style='text-align:center;padding:12px;margin-bottom:0'><div style='font-size:22px;font-weight:800;color:#16a34a'>"+totalResp2+"</div><div style='font-size:9px;color:#888'>RESPONDIDAS</div></div>";
+      html+="<div class='card' style='text-align:center;padding:12px;margin-bottom:0'><div style='font-size:22px;font-weight:800;color:#f59e0b'>"+totalPend2+"</div><div style='font-size:9px;color:#888'>PENDENTES</div></div>";
+      html+="</div>";
+    }
+    if(!atvKeys2.length){
+      html+="<div class='card' style='text-align:center;padding:40px;color:#bbb'><div style='font-size:36px'>&#128203;</div><div style='margin-top:8px;font-weight:700'>Nenhuma atividade criada ainda</div></div>";
+    } else {
+      atvKeys2.forEach(function(ak){
+        var atv=ativDB[ak];
+        var alvoIds=atv.alunosAlvo&&Object.keys(atv.alunosAlvo).length?Object.keys(atv.alunosAlvo):sts.map(function(s){return s.id;});
+        var resps=atv.respostas||{};
+        var numResps=Object.keys(resps).length;
+        var pendR=alvoIds.length-numResps;
+        var isOpen=S.sabExp==="atv2_"+ak;
+        html+="<div class='card' style='border-left:4px solid #7c3aed;margin-bottom:12px'>";
+        html+="<div style='cursor:pointer' onclick=\"set({sabExp:'"+(isOpen?"":"atv2_"+ak)+"'})\">";
+        html+="<div style='display:flex;justify-content:space-between;align-items:flex-start'>";
+        html+="<div style='flex:1'><div style='font-weight:800;font-size:15px;color:#1e1b4b'>"+atv.titulo+"</div>";
+        html+="<div style='font-size:12px;color:#888;margin-top:2px'>"+atv.materia+(atv.assunto?" · "+atv.assunto:"")+"</div></div>";
+        html+="<div style='text-align:right;flex-shrink:0'><span class='pill' style='background:#dcfce7;color:#16a34a;border:1px solid #86efac'>"+numResps+" resp.</span> <span class='pill' style='background:#fef9c3;color:#b45309;border:1px solid #fde68a'>"+pendR+" pend.</span><div style='color:#bbb;font-size:12px;margin-top:4px'>"+(isOpen?"▲":"▼")+"</div></div></div></div>";
+        if(isOpen){
+          html+="<div style='margin-top:16px;padding-top:16px;border-top:1px solid #f0f4f0'>";
+          html+="<div style='font-size:13px;color:#333;background:#f8f8f8;border-radius:10px;padding:12px;margin-bottom:14px;white-space:pre-wrap;line-height:1.7'>"+atv.enunciado+"</div>";
+          html+="<button onclick=\"delAtv('"+ak+"')\" class='btn btn-sm' style='background:#fee2e2;color:#ef4444;border:none;margin-bottom:14px'>🗑 Remover</button>";
+          var comResp2=alvoIds.filter(function(id){return resps[id];});
+          var semResp2=alvoIds.filter(function(id){return !resps[id];});
+          if(comResp2.length){
+            html+="<div style='font-size:11px;font-weight:800;color:#16a34a;letter-spacing:1px;margin-bottom:10px'>✓ RESPONDERAM ("+comResp2.length+"):</div>";
+            comResp2.forEach(function(stId){
+              var stObj=sts.find(function(s){return s.id===stId;});
+              if(!stObj)return;
+              var resp=resps[stId];
+              var temFb=resp.correcao&&resp.correcao.length>0;
+              html+="<div style='border:2px solid #86efac;border-radius:14px;padding:14px;margin-bottom:12px;background:#f0fdf4'>";
+              html+="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px'>";
+              html+="<div><span style='font-weight:800;color:#1e1b4b;font-size:14px'>"+stObj.name+"</span> <span style='font-size:11px;color:#aaa'>"+stObj.grade+"</span></div>";
+              html+="<span class='pill' style='background:#dcfce7;color:#16a34a;border:1px solid #86efac'>✓ Respondeu</span></div>";
+              if(resp.texto)html+="<div style='font-size:13px;color:#166534;line-height:1.7;white-space:pre-wrap;background:#fff;border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid #86efac'>"+resp.texto+"</div>";
+              if(resp.foto)html+="<img src='"+resp.foto+"' style='width:100%;max-height:300px;object-fit:contain;border-radius:10px;margin-bottom:10px'>";
+              if(temFb)html+="<div style='background:#eff6ff;border-radius:10px;padding:10px;border:1px solid #bfdbfe;margin-bottom:10px'><div style='font-size:11px;font-weight:800;color:#2563eb;margin-bottom:4px'>✏️ Feedback enviado:</div><div style='font-size:13px;color:#1e40af;line-height:1.7'>"+resp.correcao+"</div></div>";
+              html+="<div style='font-size:11px;font-weight:800;color:#555;margin-bottom:6px'>"+(temFb?"✏️ Editar feedback:":"✏️ Escrever feedback:")+"</div>";
+              html+="<textarea id='fb_"+ak+"_"+stId+"' class='textarea' placeholder='Comente a resposta do aluno...' style='min-height:120px;font-size:13px;margin-bottom:10px;border-color:#7c3aed'>"+(resp.correcao||"")+"</textarea>";
+              html+="<button onclick='enviarFeedback(\""+ak+"\",\""+stId+"\")' class='btn btn-blue btn-sm'>✓ "+(temFb?"Atualizar":"Enviar")+" Feedback</button>";
+              html+="</div>";
+            });
+          }
+          if(semResp2.length){
+            html+="<div style='font-size:11px;font-weight:700;color:#f59e0b;letter-spacing:1px;margin:14px 0 8px'>⏳ AGUARDANDO ("+semResp2.length+"):</div>";
+            semResp2.forEach(function(stId){
+              var stObj=sts.find(function(s){return s.id===stId;});
+              if(!stObj)return;
+              html+="<div style='display:flex;justify-content:space-between;padding:10px 14px;background:#fff5f5;border-radius:10px;border:1px solid #fecaca;margin-bottom:6px'><span style='font-weight:700;font-size:13px;color:#333'>"+stObj.name+"</span><span style='font-size:11px;color:#888'>"+stObj.grade+"</span></div>";
+            });
+          }
+          html+="</div>";
+        }
+        html+="</div>";
+      });
+    }
+  }
+
+  // ===== ABA ATIVIDADES SEPARADA =====
+  if(S.tTab==="atividades"){
+    var atvKeys2=Object.keys(ativDB);
+    html+="<button onclick=\"set({novaAtvOpen:!S.novaAtvOpen})\" class='btn' style='background:"+(S.novaAtvOpen?"#f0f0f0":"#7c3aed")+";color:"+(S.novaAtvOpen?"#555":"#fff")+";margin-bottom:14px'>"+(S.novaAtvOpen?"✕ Fechar":"✏️ Nova Atividade")+"</button>";
+    if(S.novaAtvOpen){
+      html+="<div class='card' style='border:2px solid #7c3aed;margin-bottom:16px'><div style='font-weight:800;font-size:15px;color:#4c1d95;margin-bottom:14px'>✏️ Nova Atividade</div>";
+      html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1px;margin-bottom:10px'>SELECIONAR ALUNOS:</div><div style='display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px'>";
+      sts.forEach(function(st2){var sel2=S.novaAtvAlunos&&S.novaAtvAlunos[st2.id];html+="<div onclick=\"toggleAtvAluno('"+st2.id+"')\" style='cursor:pointer;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;border:2px solid "+(sel2?"#7c3aed":"#e0e4ee")+";background:"+(sel2?"#ede9fe":"#fff")+";color:"+(sel2?"#4c1d95":"#888")+"'>"+st2.name+"</div>";});
+      html+="</div><input class='inp' id='novaAtv_titulo' placeholder='Título da atividade' style='margin-bottom:10px'>";
+      html+="<textarea class='textarea' id='novaAtv_enunc' placeholder='Enunciado...' style='min-height:120px;margin-bottom:10px'></textarea>";
+      html+="<div id='links_novaAtv'></div><div style='display:flex;gap:8px;margin-bottom:10px'><input class='inp' id='lkurl_novaAtv' placeholder='https://...' style='flex:1'><input class='inp' id='lktit_novaAtv' placeholder='Nome do link' style='flex:1'></div>";
+      html+="<button onclick=\"addLink('novaAtv')\" class='btn btn-sm' style='background:#e0f2fe;color:#0369a1;border:none;margin-bottom:12px'>+ Link</button>";
+      html+="<button onclick=\"criarAtvManual()\" class='btn btn-purple'>📋 Criar e Enviar</button></div>";
+    }
+    var totalResp2=0,totalPend2=0;
+    atvKeys2.forEach(function(ak){var atv=ativDB[ak];var alvoIds=atv.alunosAlvo&&Object.keys(atv.alunosAlvo).length?Object.keys(atv.alunosAlvo):sts.map(function(s){return s.id;});totalResp2+=Object.keys(atv.respostas||{}).length;totalPend2+=(alvoIds.length-Object.keys(atv.respostas||{}).length);});
+    if(atvKeys2.length){html+="<div class='g3' style='margin-bottom:14px'><div class='card' style='text-align:center;padding:12px;margin-bottom:0'><div style='font-size:22px;font-weight:800;color:#7c3aed'>"+atvKeys2.length+"</div><div style='font-size:9px;color:#888'>ATIVIDADES</div></div><div class='card' style='text-align:center;padding:12px;margin-bottom:0'><div style='font-size:22px;font-weight:800;color:#16a34a'>"+totalResp2+"</div><div style='font-size:9px;color:#888'>RESPONDIDAS</div></div><div class='card' style='text-align:center;padding:12px;margin-bottom:0'><div style='font-size:22px;font-weight:800;color:#f59e0b'>"+totalPend2+"</div><div style='font-size:9px;color:#888'>PENDENTES</div></div></div>";}
+    if(!atvKeys2.length){html+="<div class='card' style='text-align:center;padding:40px;color:#bbb'><div style='font-size:36px'>&#128203;</div><div style='margin-top:8px;font-weight:700'>Nenhuma atividade criada ainda</div></div>";}
+    else{
+      atvKeys2.forEach(function(ak){
+        var atv=ativDB[ak];
+        var alvoIds=atv.alunosAlvo&&Object.keys(atv.alunosAlvo).length?Object.keys(atv.alunosAlvo):sts.map(function(s){return s.id;});
+        var resps=atv.respostas||{};var numResps=Object.keys(resps).length;var pendR=alvoIds.length-numResps;
+        var isOpen=S.sabExp==="atv2_"+ak;
+        html+="<div class='card' style='border-left:4px solid #7c3aed;margin-bottom:12px'>";
+        html+="<div style='cursor:pointer' onclick=\"set({sabExp:'"+(isOpen?"":"atv2_"+ak)+"'})\">";
+        html+="<div style='display:flex;justify-content:space-between;align-items:flex-start'><div style='flex:1'><div style='font-weight:800;font-size:15px;color:#1e1b4b'>"+atv.titulo+"</div><div style='font-size:12px;color:#888;margin-top:2px'>"+atv.materia+(atv.assunto?" · "+atv.assunto:"")+"</div></div>";
+        html+="<div style='text-align:right;flex-shrink:0'><span class='pill' style='background:#dcfce7;color:#16a34a;border:1px solid #86efac'>"+numResps+" resp.</span> <span class='pill' style='background:#fef9c3;color:#b45309;border:1px solid #fde68a'>"+pendR+" pend.</span><div style='color:#bbb;font-size:12px;margin-top:4px'>"+(isOpen?"▲":"▼")+"</div></div></div></div>";
+        if(isOpen){
+          html+="<div style='margin-top:16px;padding-top:16px;border-top:1px solid #f0f4f0'>";
+          html+="<div style='font-size:13px;color:#333;background:#f8f8f8;border-radius:10px;padding:12px;margin-bottom:14px;white-space:pre-wrap;line-height:1.7'>"+atv.enunciado+"</div>";
+          html+="<button onclick=\"delAtv('"+ak+"')\" class='btn btn-sm' style='background:#fee2e2;color:#ef4444;border:none;margin-bottom:14px'>🗑 Remover</button>";
+          var comResp2=alvoIds.filter(function(id){return resps[id];});
+          var semResp2=alvoIds.filter(function(id){return !resps[id];});
+          if(comResp2.length){
+            html+="<div style='font-size:11px;font-weight:800;color:#16a34a;letter-spacing:1px;margin-bottom:10px'>✓ RESPONDERAM ("+comResp2.length+"):</div>";
+            comResp2.forEach(function(stId){
+              var stObj=sts.find(function(s){return s.id===stId;});if(!stObj)return;
+              var resp=resps[stId];var temFb=resp.correcao&&resp.correcao.length>0;
+              html+="<div style='border:2px solid #86efac;border-radius:14px;padding:14px;margin-bottom:12px;background:#f0fdf4'>";
+              html+="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px'><div><span style='font-weight:800;color:#1e1b4b;font-size:14px'>"+stObj.name+"</span> <span style='font-size:11px;color:#aaa'>"+stObj.grade+"</span></div><span class='pill' style='background:#dcfce7;color:#16a34a;border:1px solid #86efac'>✓ Respondeu</span></div>";
+              if(resp.texto)html+="<div style='font-size:13px;color:#166534;line-height:1.7;white-space:pre-wrap;background:#fff;border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid #86efac'>"+resp.texto+"</div>";
+              if(resp.foto)html+="<img src='"+resp.foto+"' style='width:100%;max-height:300px;object-fit:contain;border-radius:10px;margin-bottom:10px'>";
+              if(temFb)html+="<div style='background:#eff6ff;border-radius:10px;padding:10px;border:1px solid #bfdbfe;margin-bottom:10px'><div style='font-size:11px;font-weight:800;color:#2563eb;margin-bottom:4px'>✏️ Feedback enviado:</div><div style='font-size:13px;color:#1e40af;line-height:1.7'>"+resp.correcao+"</div></div>";
+              html+="<div style='font-size:11px;font-weight:800;color:#555;margin-bottom:6px'>"+(temFb?"✏️ Editar:":"✏️ Feedback:")+"</div>";
+              html+="<textarea id='fb_"+ak+"_"+stId+"' class='textarea' placeholder='Comente a resposta do aluno...' style='min-height:120px;font-size:13px;margin-bottom:10px;border-color:#7c3aed'>"+(resp.correcao||"")+"</textarea>";
+              html+="<button onclick='enviarFeedback(\""+ak+"\",\""+stId+"\")' class='btn btn-blue btn-sm'>✓ "+(temFb?"Atualizar":"Enviar")+" Feedback</button></div>";
+            });
+          }
+          if(semResp2.length){
+            html+="<div style='font-size:11px;font-weight:700;color:#f59e0b;letter-spacing:1px;margin:14px 0 8px'>⏳ AGUARDANDO ("+semResp2.length+"):</div>";
+            semResp2.forEach(function(stId){var stObj=sts.find(function(s){return s.id===stId;});if(!stObj)return;html+="<div style='display:flex;justify-content:space-between;padding:10px 14px;background:#fff5f5;border-radius:10px;border:1px solid #fecaca;margin-bottom:6px'><span style='font-weight:700;font-size:13px;color:#333'>"+stObj.name+"</span><span style='font-size:11px;color:#888'>"+stObj.grade+"</span></div>";});
+          }
+          html+="</div>";
+        }
+        html+="</div>";
+      });
+    }
+  }
+
+  // ===== ABA ATIVIDADES SEPARADA =====
+  if(S.tTab==="atividades"){
+    var atvKeys2=Object.keys(ativDB);
+    html+="<button onclick=\"set({novaAtvOpen:!S.novaAtvOpen})\" class='btn' style='background:"+(S.novaAtvOpen?"#f0f0f0":"#7c3aed")+";color:"+(S.novaAtvOpen?"#555":"#fff")+";margin-bottom:14px'>"+(S.novaAtvOpen?"✕ Fechar":"✏️ Nova Atividade")+"</button>";
+    if(S.novaAtvOpen){
+      html+="<div class='card' style='border:2px solid #7c3aed;margin-bottom:16px'><div style='font-weight:800;font-size:15px;color:#4c1d95;margin-bottom:14px'>✏️ Nova Atividade</div>";
+      html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1px;margin-bottom:10px'>SELECIONAR ALUNOS:</div><div style='display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px'>";
+      sts.forEach(function(st2){var sel2=S.novaAtvAlunos&&S.novaAtvAlunos[st2.id];html+="<div onclick=\"toggleAtvAluno('"+st2.id+"')\" style='cursor:pointer;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;border:2px solid "+(sel2?"#7c3aed":"#e0e4ee")+";background:"+(sel2?"#ede9fe":"#fff")+";color:"+(sel2?"#4c1d95":"#888")+"'>"+st2.name+"</div>";});
+      html+="</div><input class='inp' id='novaAtv_titulo' placeholder='Título' style='margin-bottom:10px'><textarea class='textarea' id='novaAtv_enunc' placeholder='Enunciado...' style='min-height:120px;margin-bottom:10px'></textarea>";
+      html+="<div id='links_novaAtv'></div><div style='display:flex;gap:8px;margin-bottom:10px'><input class='inp' id='lkurl_novaAtv' placeholder='https://...' style='flex:1'><input class='inp' id='lktit_novaAtv' placeholder='Nome do link' style='flex:1'></div>";
+      html+="<button onclick=\"addLink('novaAtv')\" class='btn btn-sm' style='background:#e0f2fe;color:#0369a1;border:none;margin-bottom:12px'>+ Link</button><button onclick=\"criarAtvManual()\" class='btn btn-purple'>📋 Criar e Enviar</button></div>";
+    }
+    var totalResp2=0,totalPend2=0;
+    atvKeys2.forEach(function(ak){var atv=ativDB[ak];var al2=atv.alunosAlvo&&Object.keys(atv.alunosAlvo).length?Object.keys(atv.alunosAlvo):sts.map(function(s){return s.id;});totalResp2+=Object.keys(atv.respostas||{}).length;totalPend2+=(al2.length-Object.keys(atv.respostas||{}).length);});
+    if(atvKeys2.length){html+="<div class='g3' style='margin-bottom:14px'><div class='card' style='text-align:center;padding:12px;margin-bottom:0'><div style='font-size:22px;font-weight:800;color:#7c3aed'>"+atvKeys2.length+"</div><div style='font-size:9px;color:#888'>ATIVIDADES</div></div><div class='card' style='text-align:center;padding:12px;margin-bottom:0'><div style='font-size:22px;font-weight:800;color:#16a34a'>"+totalResp2+"</div><div style='font-size:9px;color:#888'>RESPONDIDAS</div></div><div class='card' style='text-align:center;padding:12px;margin-bottom:0'><div style='font-size:22px;font-weight:800;color:#f59e0b'>"+totalPend2+"</div><div style='font-size:9px;color:#888'>PENDENTES</div></div></div>";}
+    if(!atvKeys2.length){html+="<div class='card' style='text-align:center;padding:40px;color:#bbb'><div style='font-size:36px'>&#128203;</div><div style='margin-top:8px;font-weight:700'>Nenhuma atividade ainda</div></div>";}
+    else{atvKeys2.forEach(function(ak){
+      var atv=ativDB[ak];var al2=atv.alunosAlvo&&Object.keys(atv.alunosAlvo).length?Object.keys(atv.alunosAlvo):sts.map(function(s){return s.id;});
+      var resps=atv.respostas||{};var numR=Object.keys(resps).length;var pendR=al2.length-numR;
+      var isOpen=S.sabExp==="atv2_"+ak;
+      html+="<div class='card' style='border-left:4px solid #7c3aed;margin-bottom:12px'>";
+      html+="<div style='cursor:pointer' onclick=\"set({sabExp:'"+(isOpen?"":"atv2_"+ak)+"'})\">";
+      html+="<div style='display:flex;justify-content:space-between;align-items:flex-start'><div style='flex:1'><div style='font-weight:800;font-size:15px;color:#1e1b4b'>"+atv.titulo+"</div><div style='font-size:12px;color:#888;margin-top:2px'>"+atv.materia+"</div></div>";
+      html+="<div style='text-align:right;flex-shrink:0'><span class='pill' style='background:#dcfce7;color:#16a34a;border:1px solid #86efac'>"+numR+" resp.</span> <span class='pill' style='background:#fef9c3;color:#b45309;border:1px solid #fde68a'>"+pendR+" pend.</span><div style='color:#bbb;font-size:12px;margin-top:4px'>"+(isOpen?"▲":"▼")+"</div></div></div></div>";
+      if(isOpen){
+        html+="<div style='margin-top:16px;padding-top:16px;border-top:1px solid #f0f4f0'>";
+        html+="<div style='font-size:13px;color:#333;background:#f8f8f8;border-radius:10px;padding:12px;margin-bottom:14px;white-space:pre-wrap;line-height:1.7'>"+atv.enunciado+"</div>";
+        html+="<button onclick=\"delAtv('"+ak+"')\" class='btn btn-sm' style='background:#fee2e2;color:#ef4444;border:none;margin-bottom:14px'>🗑 Remover</button>";
+        var cR=al2.filter(function(id){return resps[id];});var sR=al2.filter(function(id){return !resps[id];});
+        if(cR.length){
+          html+="<div style='font-size:11px;font-weight:800;color:#16a34a;letter-spacing:1px;margin-bottom:10px'>✓ RESPONDERAM ("+cR.length+"):</div>";
+          cR.forEach(function(stId){
+            var stO=sts.find(function(s){return s.id===stId;});if(!stO)return;
+            var resp=resps[stId];var temFb=resp.correcao&&resp.correcao.length>0;
+            html+="<div style='border:2px solid #86efac;border-radius:14px;padding:14px;margin-bottom:12px;background:#f0fdf4'>";
+            html+="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px'><div><span style='font-weight:800;color:#1e1b4b;font-size:14px'>"+stO.name+"</span> <span style='font-size:11px;color:#aaa'>"+stO.grade+"</span></div><span class='pill' style='background:#dcfce7;color:#16a34a;border:1px solid #86efac'>✓ Respondeu</span></div>";
+            if(resp.texto)html+="<div style='font-size:13px;color:#166534;line-height:1.7;white-space:pre-wrap;background:#fff;border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid #86efac'>"+resp.texto+"</div>";
+            if(resp.foto)html+="<img src='"+resp.foto+"' style='width:100%;max-height:300px;object-fit:contain;border-radius:10px;margin-bottom:10px'>";
+            if(temFb)html+="<div style='background:#eff6ff;border-radius:10px;padding:10px;border:1px solid #bfdbfe;margin-bottom:10px'><div style='font-size:11px;font-weight:800;color:#2563eb;margin-bottom:4px'>✏️ Feedback:</div><div style='font-size:13px;color:#1e40af;line-height:1.7'>"+resp.correcao+"</div></div>";
+            html+="<div style='font-size:11px;font-weight:800;color:#555;margin-bottom:6px'>"+(temFb?"✏️ Editar feedback:":"✏️ Escrever feedback:")+"</div>";
+            html+="<textarea id='fb_"+ak+"_"+stId+"' class='textarea' placeholder='Comente a resposta...' style='min-height:120px;font-size:13px;margin-bottom:10px;border-color:#7c3aed'>"+(resp.correcao||"")+"</textarea>";
+            html+="<button onclick='enviarFeedback(\""+ak+"\",\""+stId+"\")' class='btn btn-blue btn-sm'>✓ "+(temFb?"Atualizar":"Enviar")+" Feedback</button></div>";
+          });
+        }
+        if(sR.length){html+="<div style='font-size:11px;font-weight:700;color:#f59e0b;letter-spacing:1px;margin:14px 0 8px'>⏳ AGUARDANDO ("+sR.length+"):</div>";sR.forEach(function(stId){var stO=sts.find(function(s){return s.id===stId;});if(!stO)return;html+="<div style='display:flex;justify-content:space-between;padding:10px 14px;background:#fff5f5;border-radius:10px;border:1px solid #fecaca;margin-bottom:6px'><span style='font-weight:700;font-size:13px;color:#333'>"+stO.name+"</span><span style='font-size:11px;color:#888'>"+stO.grade+"</span></div>";});}
+        html+="</div>";
+      }
+      html+="</div>";
+    });}
+  }
 
   if(S.tTab==="sabado"){
     var mpProvas={};
@@ -1143,6 +1460,7 @@ function saveRedacao(){
   var foto=_fotoRedBuf||"";
   if(!texto&&!foto){showFlash("Escreva ou envie uma foto da redação!","#ef4444");return;}
   if(!st.redacoes)st.redacoes=[];
+  var temaAtualRed=S.db&&S.db.redacao&&S.db.redacao.tema&&S.db.redacao.tema.titulo?S.db.redacao.tema.titulo:"";
   var novaRed={
     id:genRedId(),
     data:today(),
@@ -1150,7 +1468,8 @@ function saveRedacao(){
     texto:texto,
     foto:foto,
     correcao:"",
-    nota:""
+    nota:"",
+    tema:temaAtualRed
   };
   st.redacoes.push(novaRed);
   dbSaveSt(st.id,st).then(function(){
@@ -1373,6 +1692,40 @@ function delHistorico(idx){
   });
 }
 
+function renderTemasAluno(){
+  var rd=S.db&&S.db.redacao?S.db.redacao:{};
+  var hist=rd.historicoTemas||[];
+  var temaAtual=rd.tema||{};
+  var html="";
+  html+="<div style='background:linear-gradient(135deg,#0a2e0f,#16a34a);border-radius:16px;padding:18px;margin-bottom:16px;color:#fff'>";
+  html+="<div style='font-size:11px;letter-spacing:3px;opacity:.8;margin-bottom:4px'>ARQUIVO DE</div>";
+  html+="<div style='font-weight:900;font-size:22px'>&#128203; Temas Trabalhados</div>";
+  html+="<div style='font-size:12px;opacity:.8;margin-top:4px'>Todos os temas de redação deste ano</div></div>";
+  if(temaAtual&&temaAtual.titulo){
+    html+="<div class='card' style='border-left:4px solid "+G+";background:#f0fdf4;margin-bottom:12px'>";
+    html+="<div style='font-size:11px;font-weight:700;color:"+G+";letter-spacing:2px;margin-bottom:6px'>TEMA ATUAL</div>";
+    html+="<div style='font-weight:800;font-size:16px;color:"+GD+"'>"+temaAtual.titulo+"</div>";
+    if(temaAtual.tipo)html+="<div style='margin-top:6px'>"+pill(temaAtual.tipo,G)+"</div>";
+    if(temaAtual.contexto)html+="<div style='font-size:13px;color:#555;margin-top:8px;line-height:1.6'>"+temaAtual.contexto+"</div>";
+    html+="</div>";
+  }
+  if(!hist.length&&(!temaAtual||!temaAtual.titulo)){
+    html+="<div class='card' style='text-align:center;padding:40px;color:#bbb'><div style='font-size:36px'>&#128203;</div><div style='margin-top:8px'>Nenhum tema registrado ainda</div></div>";
+  }
+  if(hist.length){
+    html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1.5px;margin-bottom:10px'>TEMAS ANTERIORES:</div>";
+    hist.slice().reverse().forEach(function(t,i){
+      html+="<div class='card' style='border-left:4px solid #94a3b8;margin-bottom:8px'>";
+      html+="<div style='font-weight:800;font-size:14px;color:#1e1b4b'>"+t.titulo+"</div>";
+      if(t.tipo)html+="<div style='margin-top:4px'>"+pill(t.tipo,"#64748b")+"</div>";
+      if(t.data)html+="<div style='font-size:11px;color:#aaa;margin-top:4px'>Trabalhado em "+fmtS(t.data)+"</div>";
+      if(t.contexto)html+="<div style='font-size:12px;color:#555;margin-top:6px;line-height:1.6'>"+t.contexto+"</div>";
+      html+="</div>";
+    });
+  }
+  return html;
+}
+
 function calcRanking(sts){
   var rank=[];
   sts.forEach(function(st){
@@ -1494,6 +1847,14 @@ function saveTema(){
   dbLoad().then(function(data){
     if(!data.redacao)data.redacao={filmes:[],dicas:[],tema:{}};
     data.redacao.tema={titulo:titulo,tipo:tipo,contexto:contexto};
+    // Arquivar tema anterior antes de salvar novo
+    if(data.redacao.tema&&data.redacao.tema.titulo){
+      if(!data.redacao.historicoTemas)data.redacao.historicoTemas=[];
+      var temaAnt=Object.assign({},data.redacao.tema,{data:today()});
+      var jaExiste=data.redacao.historicoTemas.some(function(t){return t.titulo===temaAnt.titulo;});
+      if(!jaExiste)data.redacao.historicoTemas.push(temaAnt);
+    }
+    if(data.redacao.tema&&data.redacao.tema.titulo){if(!data.redacao.historicoTemas)data.redacao.historicoTemas=[];var tAnt=Object.assign({},data.redacao.tema,{data:today()});var jaEx=data.redacao.historicoTemas.some(function(t){return t.titulo===tAnt.titulo;});if(!jaEx)data.redacao.historicoTemas.push(tAnt);}
     dbSet("redacao",data.redacao).then(function(){S.db=data;addNotifAuto("📝 Novo tema de redação postado!");showFlash("Tema salvo!");render();});
   });
 }

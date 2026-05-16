@@ -1046,28 +1046,42 @@ function delAtv(chKey){
 
 // ===== FOTO REDAÇÃO POR TEMA (aluno) =====
 function uploadFotoRed(temaId){
-  var file=document.getElementById("rFoto_"+temaId).files[0];if(!file)return;
+  var file=document.getElementById("rFoto_"+temaId).files[0];
+  if(!file)return;
+  if(file.size>15*1024*1024){showFlash("Foto muito grande! Máximo 15MB.","#ef4444");return;}
   showFlash("Comprimindo foto...","#f59e0b");
   var reader=new FileReader();
+  var timeout=setTimeout(function(){showFlash("Erro ao processar foto. Tente outra.","#ef4444");},15000);
   reader.onload=function(e){
     var img=new Image();
+    img.onerror=function(){clearTimeout(timeout);showFlash("Erro ao processar imagem!","#ef4444");};
     img.onload=function(){
-      var maxW=1200,maxH=1600,w=img.width,h=img.height;
-      if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
-      var canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;canvas.getContext("2d").drawImage(img,0,0,w,h);
-      _fotoRedBuf[temaId]=canvas.toDataURL("image/jpeg",0.75);
-      var prev=document.getElementById("fotoPreview_"+temaId);
-      if(prev)prev.innerHTML="<img src='"+_fotoRedBuf[temaId]+"' style='width:100%;max-height:200px;object-fit:contain;border-radius:8px;margin-bottom:10px;border:1px solid #86efac'><div style='font-size:12px;color:#16a34a;font-weight:700;margin-bottom:8px'>&#10003; Foto pronta para enviar!</div>";
-      showFlash("Foto pronta! Clique em Enviar.");
-    };img.src=e.target.result;
-  };reader.readAsDataURL(file);
+      try {
+        var maxW=1200,maxH=1600,w=img.width,h=img.height;
+        if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
+        var canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;canvas.getContext("2d").drawImage(img,0,0,w,h);
+        _fotoRedBuf[temaId]=canvas.toDataURL("image/jpeg",0.75);
+        var prev=document.getElementById("fotoPreview_"+temaId);
+        if(prev)prev.innerHTML="<img src='"+_fotoRedBuf[temaId]+"' style='width:100%;max-height:200px;object-fit:contain;border-radius:8px;margin-bottom:10px;border:1px solid #86efac'><div style='font-size:12px;color:#16a34a;font-weight:700;margin-bottom:8px'>&#10003; Foto pronta para enviar!</div>";
+        showFlash("Foto pronta! Clique em Enviar.");
+        clearTimeout(timeout);
+      } catch(err) {
+        clearTimeout(timeout);
+        showFlash("Erro ao comprimir foto!","#ef4444");
+        console.error(err);
+      }
+    };
+    img.src=e.target.result;
+  };
+  reader.onerror=function(){clearTimeout(timeout);showFlash("Erro ao ler arquivo!","#ef4444");};
+  reader.readAsDataURL(file);
 }
 
 function saveRedacao(temaId){
   var st=S.student;
   var textoEl=document.getElementById("rTexto_"+temaId);
   var tipoEl=document.getElementById("rTipo_"+temaId);
-  var texto=textoEl?textoEl.value:"";
+  var texto=textoEl?textoEl.value.trim():"";
   var tipo=tipoEl?tipoEl.value:"";
   var foto=_fotoRedBuf[temaId]||"";
   if(!texto&&!foto){showFlash("Escreva ou envie uma foto da redação!","#ef4444");return;}
@@ -1076,12 +1090,25 @@ function saveRedacao(temaId){
   var rd=S.db&&S.db.redacao?S.db.redacao:{};
   var temaObj=(rd.temas||[]).find(function(t){return t.id===temaId;});
   var temaTitulo=temaObj?temaObj.titulo:"";
+  showFlash("Enviando redação...","#f59e0b");
   st.redacoes.push({id:genRedId(),data:today(),tipo:tipo||(temaObj&&temaObj.tipo)||"",texto:texto,foto:foto,correcao:"",nota:"",tema:temaTitulo,temaId:temaId});
   dbSaveSt(st.id,st).then(function(){
+    return dbLoad();
+  }).then(function(data){
+    S.db=data;
     S.student=st;
+    // AGORA SIM, após tudo ser confirmado, zera os buffers e limpa form
     _fotoRedBuf[temaId]=null;
     _redSubBuf[temaId]=null;
-    dbLoad().then(function(data){S.db=data;set({alunoEnviarTema:null});showFlash("Redação enviada! O professor já pode ver ♥");});
+    if(textoEl)textoEl.value="";
+    var fotoEl=document.getElementById("rFoto_"+temaId);
+    if(fotoEl)fotoEl.value="";
+    set({alunoEnviarTema:null});
+    showFlash("Redação enviada! O professor já pode ver ♥",G);
+    render();
+  }).catch(function(err){
+    console.error("Erro ao salvar redação:",err);
+    showFlash("Erro ao enviar! Foto mantida no buffer. Tente novamente.","#ef4444");
   });
 }
 
@@ -1116,24 +1143,36 @@ function salvarCorrecaoRed(stId,redId){
 function uploadRespFoto(ak){
   var file=document.getElementById('rfoto_'+ak);if(!file||!file.files[0])return;
   var f=file.files[0];
-  if(f.size>10*1024*1024){showFlash('Foto muito grande! Use até 10MB.','#ef4444');return;}
+  if(f.size>15*1024*1024){showFlash('Foto muito grande! Máximo 15MB.','#ef4444');return;}
   showFlash('Processando foto...','#f59e0b');
   var reader=new FileReader();
+  var timeout=setTimeout(function(){showFlash('Erro ao processar foto. Tente outra.','#ef4444');},15000);
   reader.onload=function(e){
     var img=new Image();
+    img.onerror=function(){clearTimeout(timeout);showFlash('Erro ao processar imagem!','#ef4444');};
     img.onload=function(){
-      var maxW=1400,maxH=1800,qual=0.80;
-      if(f.size>5*1024*1024){maxW=1000;maxH=1200;qual=0.65;}
-      else if(f.size>2*1024*1024){maxW=1200;maxH=1500;qual=0.72;}
-      var w=img.width,h=img.height;
-      if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
-      var canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);
-      _atvFoto[ak]=canvas.toDataURL('image/jpeg',qual);
-      var prev=document.getElementById('prevAtv_'+ak);
-      if(prev){prev.innerHTML="<img src='"+_atvFoto[ak]+"' style='width:100%;max-height:200px;object-fit:contain;border-radius:8px;border:2px solid #16a34a;margin-bottom:6px'><div style='font-size:12px;color:#16a34a;font-weight:700'>&#10003; Foto pronta! Clique em Enviar.</div>";}
-      showFlash('Foto pronta!');
-    };img.src=e.target.result;
-  };reader.readAsDataURL(f);
+      try {
+        var maxW=1400,maxH=1800,qual=0.80;
+        if(f.size>5*1024*1024){maxW=1000;maxH=1200;qual=0.65;}
+        else if(f.size>2*1024*1024){maxW=1200;maxH=1500;qual=0.72;}
+        var w=img.width,h=img.height;
+        if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
+        var canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);
+        _atvFoto[ak]=canvas.toDataURL('image/jpeg',qual);
+        var prev=document.getElementById('prevAtv_'+ak);
+        if(prev){prev.innerHTML="<img src='"+_atvFoto[ak]+"' style='width:100%;max-height:200px;object-fit:contain;border-radius:8px;border:2px solid #16a34a;margin-bottom:6px'><div style='font-size:12px;color:#16a34a;font-weight:700'>&#10003; Foto pronta! Clique em Enviar.</div>";}
+        showFlash('Foto pronta!');
+        clearTimeout(timeout);
+      } catch(err) {
+        clearTimeout(timeout);
+        showFlash('Erro ao comprimir foto!','#ef4444');
+        console.error(err);
+      }
+    };
+    img.src=e.target.result;
+  };
+  reader.onerror=function(){clearTimeout(timeout);showFlash('Erro ao ler arquivo!','#ef4444');};
+  reader.readAsDataURL(f);
 }
 
 function enviarResposta(ak){
@@ -1143,11 +1182,28 @@ function enviarResposta(ak){
   if(!texto&&_atvTexto[ak])texto=_atvTexto[ak];
   var foto=_atvFoto[ak]||'';
   if(!texto&&!foto){showFlash('Escreva uma resposta ou escolha uma foto!','#ef4444');return;}
+  showFlash('Enviando resposta...','#f59e0b');
   dbLoad().then(function(data){
     if(!data.atividades||!data.atividades[ak]){showFlash('Atividade não encontrada!','#ef4444');return;}
     if(!data.atividades[ak].respostas)data.atividades[ak].respostas={};
     data.atividades[ak].respostas[st.id]={texto:texto,foto:foto,data:today()};
-    dbSet('atividades/'+ak,data.atividades[ak]).then(function(){S.db=data;_atvFoto[ak]='';_atvTexto[ak]='';showFlash('Atividade enviada! O professor já pode ver ♥');render();});
+    return dbSet('atividades/'+ak,data.atividades[ak]);
+  }).then(function(){
+    // AGORA SIM, após salvar no Firebase, zera os buffers e limpa inputs
+    _atvFoto[ak]='';
+    _atvTexto[ak]='';
+    if(elTexto)elTexto.value='';
+    var fotoEl=document.getElementById('rfoto_'+ak);
+    if(fotoEl)fotoEl.value='';
+    // Recarregar dados
+    return dbLoad();
+  }).then(function(data){
+    S.db=data;
+    showFlash('Atividade enviada! O professor já pode ver ♥',G);
+    render();
+  }).catch(function(err){
+    console.error('Erro ao enviar atividade:',err);
+    showFlash('Erro ao enviar! Tente novamente. Foto mantida.','#ef4444');
   });
 }
 

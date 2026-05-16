@@ -30,6 +30,7 @@ body{font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif
 .hbtn{border:none;border-radius:14px;padding:18px 22px;font-family:inherit;font-weight:700;font-size:15px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:14px;width:100%;margin-bottom:12px;}
 .snbtn{width:100%;text-align:left;padding:14px 16px;border-radius:10px;border:1.5px solid #e0e4ee;background:#fff;font-family:inherit;font-size:14px;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
 .addbox{background:#f8fafb;border-radius:10px;padding:12px;border:1px solid #e0e4ee;margin-top:8px;}
+.tm-block{background:#f8fafb;border-radius:10px;padding:12px;border:1px solid #e0e4ee;margin-bottom:10px;}
 #fl{display:none;position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;color:#fff;padding:10px 24px;border-radius:20px;font-weight:700;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.3);}
 #ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;align-items:center;justify-content:center;padding:20px;}
 </style>
@@ -55,13 +56,15 @@ var DLABELS=["Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
 var GRADES=["9º Ano","1º Ano EM","2º Ano EM","3º Ano EM"];
 var SUBS=["Matemática","Português","Redação","História","Geografia","Física","Química","Biologia","Inglês","Filosofia","Sociologia","Arte","Outro"];
 var G="#16a34a",GD="#0a2e0f";
-var S={screen:"home",student:null,weekStart:"",db:null,tab:"week",tTab:"alunos",tRT:"tema",sRT:"filmes",exp:null,editW:false,search:"",gf:"",sabExp:null,sabModo:"provas",atvExp:null,novaAtvAlunos:{},novaAtvOpen:false,histSem:null,redExpAluno:null,redExpProf:null};
+var S={screen:"home",student:null,weekStart:"",db:null,tab:"week",tTab:"alunos",tRT:"tema",sRT:"filmes",exp:null,editW:false,search:"",gf:"",sabExp:null,sabModo:"provas",atvExp:null,novaAtvAlunos:{},novaAtvOpen:false,histSem:null,redExpAluno:null,redExpProf:null,temaExpProf:null,alunoEnviarTema:null,profTemaSub:"ativos"};
 var _fl;
-// Buffers para foto e texto das atividades - NÃO são limpos ao re-renderizar
 var _atvFoto={};
 var _atvTexto={};
-var _fotoRedBuf=null;
+var _fotoRedBuf={};
 var _linksBuf={};
+var _novoTema={titulo:"",tipo:"",comando:"",textosMotivadores:[],questoes:[]};
+var _editTema=null;
+var _redSubBuf={};
 
 function today(){return new Date().toISOString().split("T")[0];}
 function fmtS(s){return s?new Date(s+"T12:00:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"}):""}
@@ -72,6 +75,9 @@ function pill(t,c){return "<span class='pill' style='background:"+c+"20;color:"+
 function wkDates(s){if(!s)return["","","","","",""];var o=[];for(var i=0;i<6;i++){var d=new Date(s+"T12:00:00");d.setDate(d.getDate()+i);o.push(d.toISOString().split("T")[0]);}return o;}
 function genRedId(){return 'red_'+Date.now()+'_'+Math.random().toString(36).substr(2,5);}
 function encodeChave(ch){return ch.replace(/[^a-zA-Z0-9]/g,'_').substring(0,60);}
+function romanNum(n){var r=["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];return r[n-1]||(""+n);}
+function escAttr(s){return String(s||"").replace(/&/g,'&amp;').replace(/'/g,"&#39;").replace(/"/g,"&quot;").replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escHTML(s){return String(s||"").replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 function dbLoad(){return new Promise(function(res){db.ref("reforco").once("value",function(s){res(s.val()||{students:{},weekStart:today(),redacao:{filmes:[],dicas:[],tema:{},temas:[]},notificacoes:[]});},function(){res({students:{},weekStart:today(),redacao:{filmes:[],dicas:[],tema:{},temas:[]},notificacoes:[]});});});}
 function dbSet(p,v){return db.ref("reforco/"+p).set(v);}
@@ -141,11 +147,53 @@ function renderPL(){
   html+="</div></div>";
   return html;
 }
+
+// Renderiza um tema completo (para o aluno ver e/ou para o professor visualizar)
+function renderTemaCompleto(t,paraAluno){
+  var html="";
+  if(t.tipo)html+="<div style='margin-bottom:10px'>"+pill(t.tipo,G)+"</div>";
+  // Comando (proposta de redação)
+  if(t.comando){
+    html+="<div style='background:#fff;border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid #e0e4ee'>";
+    html+="<div style='font-size:11px;font-weight:800;color:#0a2e0f;letter-spacing:1px;margin-bottom:6px'>&#128221; PROPOSTA</div>";
+    html+="<div style='font-size:13px;color:#333;line-height:1.7;white-space:pre-wrap'>"+escHTML(t.comando)+"</div>";
+    html+="</div>";
+  }
+  // Textos motivadores numerados
+  if(t.textosMotivadores&&t.textosMotivadores.length){
+    html+="<div style='font-size:11px;font-weight:800;color:#0a2e0f;letter-spacing:1px;margin:14px 0 8px'>&#128218; TEXTOS MOTIVADORES</div>";
+    t.textosMotivadores.forEach(function(tm,i){
+      html+="<div style='background:#fff;border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid #e0e4ee;border-left:3px solid "+G+"'>";
+      html+="<div style='font-weight:800;color:"+GD+";font-size:13px;margin-bottom:6px'>Texto "+romanNum(i+1)+(tm.tipo?" <span style=\"font-weight:400;color:#888;font-size:11px\">· "+escHTML(tm.tipo)+"</span>":"")+"</div>";
+      html+="<div style='font-size:13px;color:#333;line-height:1.7;white-space:pre-wrap'>"+escHTML(tm.conteudo||"")+"</div>";
+      if(tm.fonte)html+="<div style='font-size:11px;color:#888;margin-top:6px;font-style:italic;text-align:right'>"+escHTML(tm.fonte)+"</div>";
+      html+="</div>";
+    });
+  }
+  // Questões numeradas
+  if(t.questoes&&t.questoes.length){
+    html+="<div style='font-size:11px;font-weight:800;color:#0a2e0f;letter-spacing:1px;margin:14px 0 8px'>&#10067; QUESTÕES</div>";
+    t.questoes.forEach(function(q,i){
+      html+="<div style='background:#fff;border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid #e0e4ee;border-left:3px solid #f59e0b'>";
+      html+="<div style='font-weight:800;color:"+GD+";font-size:13px;margin-bottom:6px'>Questão "+(i+1)+"</div>";
+      html+="<div style='font-size:13px;color:#333;line-height:1.7;white-space:pre-wrap'>"+escHTML(q.enunciado||"")+"</div>";
+      html+="</div>";
+    });
+  }
+  // Compatibilidade: contexto antigo
+  if(!t.comando&&!(t.textosMotivadores&&t.textosMotivadores.length)&&!(t.questoes&&t.questoes.length)&&t.contexto){
+    html+="<div style='font-size:13px;color:#555;line-height:1.7;white-space:pre-wrap;margin-top:8px'>"+escHTML(t.contexto)+"</div>";
+  }
+  return html;
+}
+
 function renderRedacaoAluno(st){
   var redList=st.redacoes||[];
   var rd=S.db&&S.db.redacao?S.db.redacao:{filmes:[],dicas:[],tema:{},temas:[]};
-  var filmes=rd.filmes||[],dicas=rd.dicas||[],tema=rd.tema||{};
-  var temasAtivos=rd.temas&&rd.temas.length>0?rd.temas:(tema&&tema.titulo?[{titulo:tema.titulo,tipo:tema.tipo||"",contexto:tema.contexto||""}]:[]);
+  var filmes=rd.filmes||[],dicas=rd.dicas||[];
+  var todosTemas=rd.temas||[];
+  // Temas abertos para envio
+  var temasAbertos=todosTemas.filter(function(t){return t.aberto!==false;});
 
   var fh=filmes.length?"":"<div class='card' style='text-align:center;padding:40px;color:#bbb'><div style='font-size:36px'>&#127916;</div><div style='margin-top:8px'>Nenhum filme ainda</div></div>";
   filmes.forEach(function(f){fh+="<div class='card' style='padding:0;overflow:hidden'>"+(f.img?"<img src='"+f.img+"' style='width:100%;height:150px;object-fit:cover'>":"<div style='width:100%;height:80px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:40px'>&#127916;</div>")+"<div style='padding:14px'><div style='font-weight:700;font-size:15px;color:"+GD+"'>"+f.titulo+"</div>"+(f.genero?"<div style='font-size:12px;color:"+G+";margin-top:4px;font-weight:600'>"+f.genero+"</div>":"")+(f.descricao?"<div style='font-size:13px;color:#555;margin-top:8px;line-height:1.6'>"+f.descricao+"</div>":"")+(f.repertorio?"<div style='margin-top:10px;background:#f0fdf4;border-radius:8px;padding:10px;font-size:12px;color:#166534'><b>&#128161; Como usar:</b><br>"+f.repertorio+"</div>":"")+"</div></div>";});
@@ -156,23 +204,47 @@ function renderRedacaoAluno(st){
   var topts=""; ["Dissertativo-Argumentativo","Narrativo","Descritivo","Expositivo"].forEach(function(t){topts+="<option value='"+t+"'>"+t+"</option>";});
   var mh="";
 
-  // Temas ativos
-  temasAtivos.forEach(function(t){
-    mh+="<div class='card' style='border-left:4px solid "+G+";background:#f0fdf4;margin-bottom:12px'><div style='font-size:11px;font-weight:700;color:"+G+";letter-spacing:2px;margin-bottom:6px'>TEMA DA SEMANA</div><div style='font-weight:800;font-size:17px;color:"+GD+"'>"+t.titulo+"</div>"+(t.tipo?"<div style='margin-top:6px'>"+pill(t.tipo,G)+"</div>":"")+(t.contexto?"<div style='font-size:13px;color:#555;margin-top:8px;line-height:1.6'>"+t.contexto+"</div>":"")+"</div>";
-  });
+  // ===== Temas abertos com formulário de envio embutido =====
+  if(!temasAbertos.length){
+    mh+="<div class='card' style='text-align:center;padding:40px;color:#bbb'><div style='font-size:36px'>&#128203;</div><div style='margin-top:8px;font-weight:700'>Nenhum tema aberto no momento</div><div style='font-size:12px;margin-top:4px'>Aguarde o professor liberar um tema!</div></div>";
+  } else {
+    temasAbertos.forEach(function(t){
+      var temaId=t.id;
+      // Verificar se aluno já enviou para este tema
+      var jaEnviou=redList.some(function(r){return r.temaId===temaId;});
+      var isFormOpen=S.alunoEnviarTema===temaId;
+      mh+="<div class='card' style='border-left:4px solid "+G+";background:#f0fdf4;margin-bottom:14px'>";
+      mh+="<div style='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px'>";
+      mh+="<div style='flex:1'><div style='font-size:11px;font-weight:700;color:"+G+";letter-spacing:2px;margin-bottom:4px'>TEMA ABERTO</div>";
+      mh+="<div style='font-weight:800;font-size:17px;color:"+GD+"'>"+escHTML(t.titulo)+"</div></div>";
+      mh+="<span class='pill' style='background:#dcfce7;color:#16a34a;border:1px solid #86efac'>&#128275; Aberto</span>";
+      mh+="</div>";
+      mh+=renderTemaCompleto(t,true);
+      // Formulário de envio
+      if(jaEnviou){
+        mh+="<div style='background:#fff;border-radius:10px;padding:12px;margin-top:12px;border:2px solid #86efac;text-align:center'><div style='color:#16a34a;font-weight:800;font-size:13px'>&#10003; Você já enviou para este tema</div><div style='font-size:12px;color:#666;margin-top:4px'>Aguarde a correção do professor</div></div>";
+      } else if(!isFormOpen){
+        mh+="<button class='btn btn-green' style='margin-top:12px' onclick=\"set({alunoEnviarTema:'"+temaId+"'})\">&#9997; Enviar redação para este tema</button>";
+      } else {
+        mh+="<div style='background:#fff;border-radius:12px;padding:14px;margin-top:12px;border:2px solid "+G+"'>";
+        mh+="<div style='font-weight:800;font-size:13px;color:"+GD+";margin-bottom:10px'>&#9997; Enviar redação</div>";
+        mh+="<select class='sel' id='rTipo_"+temaId+"' style='margin-bottom:10px' onchange='_redSubBuf[\""+temaId+"\"]=_redSubBuf[\""+temaId+"\"]||{};_redSubBuf[\""+temaId+"\"].tipo=this.value'><option value=''>Tipo de texto</option>"+topts+"</select>";
+        mh+="<textarea class='textarea' id='rTexto_"+temaId+"' placeholder='Digite sua redação aqui...' style='margin-bottom:10px;min-height:140px' oninput='_redSubBuf[\""+temaId+"\"]=_redSubBuf[\""+temaId+"\"]||{};_redSubBuf[\""+temaId+"\"].texto=this.value'>"+(_redSubBuf[temaId]&&_redSubBuf[temaId].texto?_redSubBuf[temaId].texto:"")+"</textarea>";
+        mh+="<div style='font-size:11px;font-weight:700;color:#666;letter-spacing:1px;margin-bottom:6px'>OU ANEXE UMA FOTO:</div>";
+        mh+="<input type='file' id='rFoto_"+temaId+"' accept='image/*' onchange='uploadFotoRed(\""+temaId+"\")' style='margin-bottom:12px;font-size:13px'>";
+        mh+="<div id='fotoPreview_"+temaId+"'>"+(_fotoRedBuf[temaId]?"<img src='"+_fotoRedBuf[temaId]+"' style=\"width:100%;max-height:200px;object-fit:contain;border-radius:8px;margin-bottom:10px;border:1px solid #86efac\"><div style='font-size:12px;color:#16a34a;font-weight:700;margin-bottom:8px'>&#10003; Foto pronta para enviar!</div>":"")+"</div>";
+        mh+="<div style='display:flex;gap:8px'>";
+        mh+="<button class='btn btn-green' onclick='saveRedacao(\""+temaId+"\")'>&#128190; Enviar</button>";
+        mh+="<button class='btn btn-sm' style='background:#f0f0f0;color:#555;border:none;white-space:nowrap' onclick=\"set({alunoEnviarTema:null})\">Cancelar</button>";
+        mh+="</div></div>";
+      }
+      mh+="</div>";
+    });
+  }
 
-  mh+="<div class='card' style='border:2px solid "+G+";margin-bottom:16px'>";
-  mh+="<div style='font-weight:800;font-size:14px;color:"+GD+";margin-bottom:14px'>&#9997; Enviar Nova Redação</div>";
-  mh+="<select class='sel' id='rTipo' style='margin-bottom:10px'><option value=''>Tipo de texto</option>"+topts+"</select>";
-  mh+="<textarea class='textarea' id='rTexto' placeholder='Digite sua redação aqui...' style='margin-bottom:10px;min-height:140px'></textarea>";
-  mh+="<div style='font-size:11px;font-weight:700;color:#666;letter-spacing:1px;margin-bottom:6px'>OU ANEXE UMA FOTO:</div>";
-  mh+="<input type='file' id='rFoto' accept='image/*' onchange='uploadFoto()' style='margin-bottom:12px;font-size:13px'>";
-  mh+="<div id='fotoPreview'></div>";
-  mh+="<button class='btn btn-green' onclick='saveRedacao()'>&#128190; Enviar Redação</button>";
-  mh+="</div>";
-
+  // ===== Redações anteriores =====
   if(redList.length){
-    mh+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1.5px;margin-bottom:10px'>MINHAS REDAÇÕES ANTERIORES:</div>";
+    mh+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1.5px;margin-bottom:10px;margin-top:24px'>MINHAS REDAÇÕES ANTERIORES:</div>";
     var sorted=redList.slice().sort(function(a,b){return (b.data||"").localeCompare(a.data||"");});
     sorted.forEach(function(red,idx){
       var isOpen=S.redExpAluno===red.id;
@@ -208,8 +280,6 @@ function renderRedacaoAluno(st){
       }
       mh+="</div>";
     });
-  } else {
-    mh+="<div class='card' style='text-align:center;padding:30px;color:#bbb'><div style='font-size:36px'>&#128221;</div><div style='margin-top:8px'>Você ainda não enviou nenhuma redação</div></div>";
   }
 
   var rtc=S.sRT==="filmes"?fh:S.sRT==="dicas"?dh:mh;
@@ -218,33 +288,39 @@ function renderRedacaoAluno(st){
   rh+="</div>"+rtc;
   return rh;
 }
+
 function renderTemasAluno(){
   var rd=S.db&&S.db.redacao?S.db.redacao:{};
   var hist=rd.historicoTemas||[];
-  var temaAtual=rd.tema||{};
+  var temasAtivos=rd.temas||[];
   var html="<div style='background:linear-gradient(135deg,#0a2e0f,#16a34a);border-radius:16px;padding:18px;margin-bottom:16px;color:#fff'>";
   html+="<div style='font-size:11px;letter-spacing:3px;opacity:.8;margin-bottom:4px'>ARQUIVO DE</div>";
   html+="<div style='font-weight:900;font-size:22px'>&#128203; Temas Trabalhados</div>";
   html+="<div style='font-size:12px;opacity:.8;margin-top:4px'>Todos os temas de redação deste ano</div></div>";
-  if(temaAtual&&temaAtual.titulo){
-    html+="<div class='card' style='border-left:4px solid "+G+";background:#f0fdf4;margin-bottom:12px'>";
-    html+="<div style='font-size:11px;font-weight:700;color:"+G+";letter-spacing:2px;margin-bottom:6px'>TEMA ATUAL</div>";
-    html+="<div style='font-weight:800;font-size:16px;color:"+GD+"'>"+temaAtual.titulo+"</div>";
-    if(temaAtual.tipo)html+="<div style='margin-top:6px'>"+pill(temaAtual.tipo,G)+"</div>";
-    if(temaAtual.contexto)html+="<div style='font-size:13px;color:#555;margin-top:8px;line-height:1.6'>"+temaAtual.contexto+"</div>";
-    html+="</div>";
+  if(temasAtivos.length){
+    html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1.5px;margin-bottom:10px'>TEMAS ATUAIS:</div>";
+    temasAtivos.forEach(function(t){
+      var aberto=t.aberto!==false;
+      html+="<div class='card' style='border-left:4px solid "+(aberto?G:"#94a3b8")+";margin-bottom:10px"+(aberto?";background:#f0fdf4":"")+"'>";
+      html+="<div style='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px'>";
+      html+="<div style='font-weight:800;font-size:15px;color:"+GD+";flex:1'>"+escHTML(t.titulo)+"</div>";
+      html+=aberto?"<span class='pill' style='background:#dcfce7;color:#16a34a;border:1px solid #86efac'>&#128275; Aberto</span>":"<span class='pill' style='background:#fee2e2;color:#ef4444;border:1px solid #fecaca'>&#128274; Fechado</span>";
+      html+="</div>";
+      if(t.tipo)html+="<div style='margin-bottom:6px'>"+pill(t.tipo,"#64748b")+"</div>";
+      if(t.data)html+="<div style='font-size:11px;color:#888'>Adicionado em "+fmtS(t.data)+"</div>";
+      html+="</div>";
+    });
   }
-  if(!hist.length&&(!temaAtual||!temaAtual.titulo)){
+  if(!hist.length&&!temasAtivos.length){
     html+="<div class='card' style='text-align:center;padding:40px;color:#bbb'><div style='font-size:36px'>&#128203;</div><div style='margin-top:8px'>Nenhum tema registrado ainda</div></div>";
   }
   if(hist.length){
-    html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1.5px;margin-bottom:10px'>TEMAS ANTERIORES:</div>";
+    html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1.5px;margin-bottom:10px;margin-top:18px'>TEMAS ANTERIORES:</div>";
     hist.slice().reverse().forEach(function(t){
       html+="<div class='card' style='border-left:4px solid #94a3b8;margin-bottom:8px'>";
-      html+="<div style='font-weight:800;font-size:14px;color:#1e1b4b'>"+t.titulo+"</div>";
+      html+="<div style='font-weight:800;font-size:14px;color:#1e1b4b'>"+escHTML(t.titulo)+"</div>";
       if(t.tipo)html+="<div style='margin-top:4px'>"+pill(t.tipo,"#64748b")+"</div>";
       if(t.data)html+="<div style='font-size:11px;color:#aaa;margin-top:4px'>Trabalhado em "+fmtS(t.data)+"</div>";
-      if(t.contexto)html+="<div style='font-size:12px;color:#555;margin-top:6px;line-height:1.6'>"+t.contexto.substring(0,200)+"</div>";
       html+="</div>";
     });
   }
@@ -310,7 +386,6 @@ function renderStudent(){
 
   var rh=renderRedacaoAluno(st);
 
-  // Atividades do aluno - campo texto NÃO usa set() para não perder o que digitou
   var ativDB=S.db&&S.db.atividades?S.db.atividades:{};
   var atvHtml="";
   var ativKeys=Object.keys(ativDB).filter(function(ak){
@@ -354,7 +429,6 @@ function renderStudent(){
         } else {
           atvHtml+="<div style='background:#faf5ff;border-radius:12px;padding:14px;border:1px solid #e9d5ff'>";
           atvHtml+="<div style='font-size:11px;font-weight:800;color:#7c3aed;letter-spacing:1px;margin-bottom:10px'>&#128221; ENVIAR RESPOSTA:</div>";
-          // IMPORTANTE: oninput salva no buffer sem re-renderizar
           atvHtml+="<textarea id='rta_"+ak+"' class='textarea' placeholder='Digite sua resposta aqui...' style='min-height:100px;margin-bottom:10px' oninput='_atvTexto[\""+ak+"\"]=this.value'></textarea>";
           atvHtml+="<div style='font-size:11px;font-weight:700;color:#888;margin-bottom:6px'>OU ANEXE UMA FOTO:</div>";
           atvHtml+="<input type='file' accept='image/*' id='rfoto_"+ak+"' onchange='uploadRespFoto(\""+ak+"\")' style='margin-bottom:6px;font-size:12px'>";
@@ -367,7 +441,6 @@ function renderStudent(){
     });
   }
 
-  // Rankings
   var allRank=calcRanking(S.db?Object.values(S.db.students||{}):[]);
   var myPos=0; allRank.forEach(function(al,i){if(al.id===st.id)myPos=i+1;});
   var rankHtml="<div style='background:linear-gradient(135deg,#b45309,#f59e0b);border-radius:16px;padding:18px;margin-bottom:16px;color:#fff'>";
@@ -408,6 +481,7 @@ function renderStudent(){
   html+="</div></div>";
   return html;
 }
+
 function renderParent(){
   var st=S.student; if(!st) return "";
   var dates=wkDates(S.weekStart),wl=dates[0]&&dates[5]?fmtS(dates[0])+" a "+fmtS(dates[5]):"Esta semana";
@@ -488,6 +562,7 @@ function renderParent(){
 function renderTL(){
   return "<div style='min-height:100vh;background:#f5f7ff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px'><button onclick=\"go('home')\" style='position:absolute;top:20px;left:20px;background:none;border:none;font-size:22px;cursor:pointer'>&#8592;</button><div style='width:100%;max-width:340px'><div style='text-align:center;margin-bottom:28px'><div style='font-size:48px'>&#128272;</div><div style='font-size:22px;font-weight:800;color:"+GD+";margin-top:8px'>Acesso do Professor</div></div><div class='card'><div style='font-size:11px;font-weight:700;color:#666;letter-spacing:1.5px;margin-bottom:8px'>SENHA</div><input type='password' class='inp' id='tPass' placeholder='••••••••' onkeydown='if(event.key===\"Enter\")tLogin()' style='margin-bottom:6px' autofocus><div id='tErr' style='color:#ef4444;font-size:12px;margin-bottom:8px;display:none'>&#10060; Senha incorreta.</div><button class='btn btn-green' onclick='tLogin()' style='margin-top:8px'>Entrar &#8594;</button></div></div></div>";
 }
+
 function renderTeacher(){
   var data=S.db;
   if(!data) return "<div style='min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px'><div style='font-size:40px'>&#8987;</div><div style='color:#888;font-weight:700'>Carregando...</div></div>";
@@ -510,6 +585,7 @@ function renderTeacher(){
   [["alunos","&#128101; Alunos"],["provas","&#128221; Provas"],["atividades","&#128203; Atividades"],["sabado","&#128197; Sábado"],["pendentes","&#9888; ("+pend.length+")"],["notif","&#128226; Avisos"],["redacao","&#9997; Redação"],["ranking","&#127942; Ranking"],["historico","&#128337; Histórico"]].forEach(function(x){html+="<button class='tab' onclick=\"set({tTab:'"+x[0]+"'})\" style='background:"+(S.tTab===x[0]?GD:"#fff")+";color:"+(S.tTab===x[0]?"#fff":"#555")+"'>"+x[1]+"</button>";});
   html+="<button class='tab' onclick='loadT()' style='background:#fff;color:#555;border:1px solid #e0e4ee'>&#128260;</button>";
   html+="</div>";
+
   if(S.tTab==="alunos"){
     var gopts=""; [""].concat(GRADES).forEach(function(g){gopts+="<button onclick=\"set({gf:'"+g+"'})\" style='background:"+(S.gf===g?G:"#fff")+";color:"+(S.gf===g?"#fff":"#555")+";border:1px solid #e0e4ee;border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit'>"+(g||"Todos")+"</button>";});
     html+="<input class='inp' placeholder='&#128269; Buscar aluno...' value='"+S.search+"' oninput='set({search:this.value})' style='margin-bottom:10px'><div style='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px'>"+gopts+"</div>";
@@ -540,7 +616,7 @@ function renderTeacher(){
     if(!ae.length)html+="<div class='card' style='text-align:center;padding:40px;color:#bbb'><div style='font-size:36px'>&#128491;</div><div>Nenhuma prova</div></div>";
     else ae.forEach(function(e){var d=dl(e.date),c=d<=3?"#ef4444":"#f59e0b",t=d<=0?"Hoje":d===1?"Amanhã":d+"d";html+="<div class='card' style='border-left:4px solid "+c+"'><div style='display:flex;justify-content:space-between;align-items:flex-start'><div><div style='font-weight:700;font-size:14px;color:"+GD+"'>"+e.sn+" <span style='color:#888;font-weight:400;font-size:12px'>· "+e.gr+"</span></div><div style='font-size:13px;color:#555;margin-top:2px'>"+e.subject+(e.topic?" · "+e.topic:"")+"</div><div style='font-size:12px;color:#888;margin-top:4px'>&#128197; "+fmtL(e.date)+"</div></div>"+pill(t,c)+"</div></div>";});
   }
-  // ===== ABA ATIVIDADES - aparece UMA VEZ, limpa e organizada =====
+
   if(S.tTab==="atividades"){
     var atvKeys2=Object.keys(ativDB);
     html+="<button onclick=\"set({novaAtvOpen:!S.novaAtvOpen})\" class='btn' style='background:"+(S.novaAtvOpen?"#f0f0f0":"#7c3aed")+";color:"+(S.novaAtvOpen?"#555":"#fff")+";margin-bottom:14px'>"+(S.novaAtvOpen?"✕ Fechar":"✏️ Nova Atividade")+"</button>";
@@ -612,6 +688,7 @@ function renderTeacher(){
       });
     }
   }
+
   if(S.tTab==="sabado"){
     var mpProvas={};
     sts.forEach(function(st){(st.exams||[]).filter(function(e){return e.date>=today();}).forEach(function(e){var ch=e.subject+(e.topic?"|"+e.topic:"");if(!mpProvas[ch])mpProvas[ch]={subject:e.subject,topic:e.topic||"",alunos:[]};mpProvas[ch].alunos.push({nome:st.name,grade:st.grade,data:e.date,stId:st.id});});});
@@ -688,6 +765,7 @@ function renderTeacher(){
       else{atvKeys.forEach(function(ak){var atv=ativDB[ak];var alunosAlvo=atv.alunosAlvo&&Object.keys(atv.alunosAlvo).length?Object.keys(atv.alunosAlvo):sts.map(function(s){return s.id;});var numR=Object.keys(atv.respostas||{}).length;var pendR=alunosAlvo.length-numR;html+="<div class='card' style='border-left:4px solid #7c3aed;margin-bottom:8px'><div style='display:flex;justify-content:space-between;align-items:center'><div><div style='font-weight:800;font-size:14px;color:#1e1b4b'>"+atv.titulo+"</div><div style='font-size:12px;color:#888;margin-top:2px'>"+atv.materia+"</div></div><div style='display:flex;gap:6px'><span class='pill' style='background:#dcfce7;color:#16a34a;border:1px solid #86efac'>"+numR+" resp.</span><span class='pill' style='background:#fef9c3;color:#b45309;border:1px solid #fde68a'>"+pendR+" pend.</span></div></div></div>";});}
     }
   }
+
   if(S.tTab==="ranking"){
     var rank=calcRanking(sts);
     html+="<div style='background:linear-gradient(135deg,#b45309,#f59e0b);border-radius:16px;padding:18px;margin-bottom:16px;color:#fff'><div style='font-size:11px;letter-spacing:3px;opacity:.8;margin-bottom:4px'>PAINEL DE</div><div style='font-weight:900;font-size:22px'>&#127942; Ranking de Dedicação</div></div>";
@@ -715,29 +793,141 @@ function renderTeacher(){
     if(notifs.length)html+="<div style='font-size:11px;font-weight:700;color:#555;letter-spacing:1px;margin-bottom:10px'>AVISOS ENVIADOS:</div>";
     notifs.forEach(function(n,i){html+="<div class='card' style='border-left:4px solid #3b82f6'><div style='display:flex;justify-content:space-between;align-items:flex-start'><div><div style='font-weight:700;font-size:14px;color:"+GD+"'>"+n.titulo+"</div><div style='font-size:13px;color:#555;margin-top:4px'>"+n.mensagem+"</div></div><div style='display:flex;flex-direction:column;gap:8px;align-items:flex-end'>"+pill(n.ativa?"Ativo":"Inativo",n.ativa?G:"#888")+"<button onclick='toggleNotif("+i+")' class='btn btn-sm' style='background:#f0f0f0;color:#555;border:none'>"+(n.ativa?"Desativar":"Ativar")+"</button><button onclick='delNotif("+i+")' style='background:none;border:none;color:#ddd;cursor:pointer;font-size:16px'>&#128465;</button></div></div></div>";});
   }
+
+  // ===== ABA REDAÇÃO DO PROFESSOR =====
   if(S.tTab==="redacao"){
-    var tema2=rd.tema||{};
     var temasAtivosP=rd.temas||[];
+    var hist=rd.historicoTemas||[];
     html+="<div class='tabs' style='margin-bottom:14px'>";
-    [["tema","&#128203; Tema"],["filmes","&#127916; Filmes"],["dicas","&#128161; Dicas"],["enviadas","&#9997; Redações"]].forEach(function(x){html+="<button class='tab' onclick=\"set({tRT:'"+x[0]+"'})\" style='background:"+(S.tRT===x[0]?GD:"#fff")+";color:"+(S.tRT===x[0]?"#fff":"#555")+"'>"+x[1]+"</button>";});
+    [["tema","&#128203; Temas"],["filmes","&#127916; Filmes"],["dicas","&#128161; Dicas"],["enviadas","&#9997; Redações"]].forEach(function(x){html+="<button class='tab' onclick=\"set({tRT:'"+x[0]+"'})\" style='background:"+(S.tRT===x[0]?GD:"#fff")+";color:"+(S.tRT===x[0]?"#fff":"#555")+"'>"+x[1]+"</button>";});
     html+="</div>";
 
     if(S.tRT==="tema"){
-      var topts2="";["Dissertativo-Argumentativo","Narrativo","Descritivo","Expositivo"].forEach(function(t){topts2+="<option value='"+t+"'>"+t+"</option>";});
-      // Temas ativos com botão de remover
-      if(temasAtivosP.length){
-        html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1.5px;margin-bottom:10px'>TEMAS ATIVOS:</div>";
+      // Sub-abas: Ativos / Arquivo / Novo
+      html+="<div style='display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap'>";
+      [["ativos","&#128203; Ativos ("+temasAtivosP.length+")"],["arquivo","&#128337; Arquivo ("+hist.length+")"],["novo","&#10133; Novo Tema"]].forEach(function(x){html+="<button onclick=\"set({profTemaSub:'"+x[0]+"'})\" style='background:"+(S.profTemaSub===x[0]?G:"#fff")+";color:"+(S.profTemaSub===x[0]?"#fff":"#555")+";border:1px solid #e0e4ee;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit'>"+x[1]+"</button>";});
+      html+="</div>";
+
+      // === ATIVOS ===
+      if(S.profTemaSub==="ativos"){
+        if(!temasAtivosP.length){
+          html+="<div class='card' style='text-align:center;padding:40px;color:#bbb'><div style='font-size:36px'>&#128203;</div><div style='margin-top:8px;font-weight:700'>Nenhum tema ativo</div><div style='font-size:12px;margin-top:4px'>Vá em \"Novo Tema\" para adicionar</div></div>";
+        }
+        // Contar redações por tema
+        var contRed={};
+        sts.forEach(function(st){(st.redacoes||[]).forEach(function(r){if(r.temaId){contRed[r.temaId]=(contRed[r.temaId]||0)+1;}});});
         temasAtivosP.forEach(function(t){
-          html+="<div class='card' style='border-left:4px solid "+G+";margin-bottom:8px'>";
-          html+="<div style='display:flex;justify-content:space-between;align-items:flex-start'>";
-          html+="<div style='flex:1'><div style='font-weight:800;font-size:14px;color:"+GD+"'>"+t.titulo+"</div>";
-          if(t.tipo)html+="<div style='margin-top:4px'>"+pill(t.tipo,G)+"</div>";
-          if(t.contexto)html+="<div style='font-size:12px;color:#555;margin-top:6px;line-height:1.5'>"+t.contexto.substring(0,150)+"...</div>";
-          html+="</div><button onclick='removerTemaAtivo(\""+t.id+"\")' style='background:none;border:none;color:#ddd;cursor:pointer;font-size:18px;flex-shrink:0;margin-left:8px'>&#128465;</button></div></div>";
+          var aberto=t.aberto!==false;
+          var isExp=S.temaExpProf===t.id;
+          var numEnvios=contRed[t.id]||0;
+          html+="<div class='card' style='border-left:4px solid "+(aberto?G:"#94a3b8")+";margin-bottom:12px"+(aberto?"":"; background:#fafafa")+"'>";
+          html+="<div style='cursor:pointer' onclick=\"set({temaExpProf:'"+(isExp?"":t.id)+"'})\">";
+          html+="<div style='display:flex;justify-content:space-between;align-items:flex-start;gap:8px'>";
+          html+="<div style='flex:1'><div style='font-weight:800;font-size:15px;color:"+GD+"'>"+escHTML(t.titulo)+"</div>";
+          if(t.tipo)html+="<div style='margin-top:4px'>"+pill(t.tipo,"#64748b")+"</div>";
+          html+="<div style='font-size:11px;color:#888;margin-top:4px'>"+(t.data?"Adicionado em "+fmtS(t.data):"")+" · &#9997; "+numEnvios+" envio"+(numEnvios===1?"":"s")+"</div></div>";
+          html+="<div style='display:flex;flex-direction:column;align-items:flex-end;gap:6px'>";
+          html+=aberto?"<span class='pill' style='background:#dcfce7;color:#16a34a;border:1px solid #86efac'>&#128275; Aberto</span>":"<span class='pill' style='background:#fee2e2;color:#ef4444;border:1px solid #fecaca'>&#128274; Fechado</span>";
+          html+="<span style='color:#bbb;font-size:14px'>"+(isExp?"&#9650;":"&#9660;")+"</span>";
+          html+="</div></div></div>";
+          if(isExp){
+            html+="<div style='margin-top:14px;padding-top:14px;border-top:1px solid #f0f4f0'>";
+            html+=renderTemaCompleto(t,false);
+            html+="<div style='display:flex;gap:8px;margin-top:14px;flex-wrap:wrap'>";
+            html+="<button onclick='toggleTemaAberto(\""+t.id+"\")' class='btn btn-sm' style='background:"+(aberto?"#fee2e2":"#dcfce7")+";color:"+(aberto?"#ef4444":"#16a34a")+";border:none'>"+(aberto?"&#128274; Fechar":"&#128275; Reabrir")+"</button>";
+            html+="<button onclick='editTema(\""+t.id+"\")' class='btn btn-outline btn-sm'>&#9999; Editar</button>";
+            html+="<button onclick='arquivarTema(\""+t.id+"\")' class='btn btn-sm' style='background:#f0f0f0;color:#555;border:none'>&#128193; Arquivar</button>";
+            html+="<button onclick='removerTemaAtivo(\""+t.id+"\")' class='btn btn-sm' style='background:#fee2e2;color:#ef4444;border:none'>&#128465; Excluir</button>";
+            html+="</div></div>";
+          }
+          html+="</div>";
         });
-        html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1.5px;margin-top:16px;margin-bottom:10px'>ADICIONAR NOVO TEMA:</div>";
       }
-      html+="<div class='card'><div style='font-weight:700;font-size:14px;color:"+GD+";margin-bottom:14px'>&#10133; Novo Tema</div><input class='inp' id='tTitulo' value='' placeholder='Título do tema' style='margin-bottom:10px'><select class='sel' id='tTipo' style='margin-bottom:10px'><option value=''>Tipo de texto</option>"+topts2+"</select><textarea class='textarea' id='tContexto' placeholder='Contextualização e dicas...' style='margin-bottom:12px'></textarea><button class='btn btn-green' onclick='saveTema()'>&#10133; Adicionar Tema</button></div>";
+
+      // === ARQUIVO ===
+      if(S.profTemaSub==="arquivo"){
+        if(!hist.length){
+          html+="<div class='card' style='text-align:center;padding:40px;color:#bbb'><div style='font-size:36px'>&#128337;</div><div style='margin-top:8px;font-weight:700'>Nenhum tema arquivado</div><div style='font-size:12px;margin-top:4px'>Temas removidos ficarão aqui</div></div>";
+        }
+        hist.slice().reverse().forEach(function(t,idx){
+          var realIdx=hist.length-1-idx;
+          var isExp=S.temaExpProf==="h_"+realIdx;
+          html+="<div class='card' style='border-left:4px solid #94a3b8;margin-bottom:10px;background:#fafafa'>";
+          html+="<div style='cursor:pointer' onclick=\"set({temaExpProf:'"+(isExp?"":"h_"+realIdx)+"'})\">";
+          html+="<div style='display:flex;justify-content:space-between;align-items:flex-start'>";
+          html+="<div style='flex:1'><div style='font-weight:800;font-size:14px;color:#1e1b4b'>"+escHTML(t.titulo)+"</div>";
+          if(t.tipo)html+="<div style='margin-top:4px'>"+pill(t.tipo,"#64748b")+"</div>";
+          if(t.data)html+="<div style='font-size:11px;color:#aaa;margin-top:4px'>"+fmtS(t.data)+"</div>";
+          html+="</div><span style='color:#bbb;font-size:14px'>"+(isExp?"&#9650;":"&#9660;")+"</span></div></div>";
+          if(isExp){
+            html+="<div style='margin-top:14px;padding-top:14px;border-top:1px solid #f0f4f0'>";
+            html+=renderTemaCompleto(t,false);
+            html+="<div style='display:flex;gap:8px;margin-top:12px'>";
+            html+="<button onclick='reativarTemaHist("+realIdx+")' class='btn btn-outline btn-sm'>&#8617; Reativar</button>";
+            html+="<button onclick='delTemaHist("+realIdx+")' class='btn btn-sm' style='background:#fee2e2;color:#ef4444;border:none'>&#128465; Apagar</button>";
+            html+="</div></div>";
+          }
+          html+="</div>";
+        });
+      }
+
+      // === NOVO TEMA ===
+      if(S.profTemaSub==="novo"){
+        var topts2="";["Dissertativo-Argumentativo","Narrativo","Descritivo","Expositivo"].forEach(function(t){topts2+="<option value='"+t+"'"+(_novoTema.tipo===t?" selected":"")+">"+t+"</option>";});
+        html+="<div class='card' style='border:2px solid "+G+"'>";
+        html+="<div style='font-weight:800;font-size:15px;color:"+GD+";margin-bottom:14px'>&#10133; Cadastrar Novo Tema</div>";
+        html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1px;margin-bottom:6px'>TÍTULO DO TEMA</div>";
+        html+="<input class='inp' placeholder='Ex: A persistência da violência contra a mulher na sociedade brasileira' value='"+escAttr(_novoTema.titulo)+"' oninput='_novoTema.titulo=this.value' style='margin-bottom:12px'>";
+        html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1px;margin-bottom:6px'>TIPO DE TEXTO</div>";
+        html+="<select class='sel' oninput='_novoTema.tipo=this.value' style='margin-bottom:14px'><option value=''>Selecione o tipo</option>"+topts2+"</select>";
+
+        // PROPOSTA / COMANDO
+        html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1px;margin-bottom:6px'>&#128221; PROPOSTA DE REDAÇÃO (comando)</div>";
+        html+="<textarea class='textarea' placeholder='Ex: A partir da leitura dos textos motivadores e com base nos conhecimentos construídos ao longo de sua formação, redija texto dissertativo argumentativo...' oninput='_novoTema.comando=this.value' style='margin-bottom:14px'>"+escHTML(_novoTema.comando)+"</textarea>";
+
+        // TEXTOS MOTIVADORES (lista de blocos)
+        html+="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>";
+        html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1px'>&#128218; TEXTOS MOTIVADORES</div>";
+        html+="<button onclick='addTextoMotivador()' class='btn btn-sm' style='background:#e0f2fe;color:#0369a1;border:none'>+ Adicionar texto</button>";
+        html+="</div>";
+        if(!_novoTema.textosMotivadores.length){
+          html+="<div style='background:#f8fafb;border:1px dashed #d0d4de;border-radius:10px;padding:14px;text-align:center;color:#888;font-size:12px;margin-bottom:14px'>Nenhum texto motivador. Clique em \"+ Adicionar texto\" para adicionar o Texto I, II, III...</div>";
+        }
+        _novoTema.textosMotivadores.forEach(function(tm,i){
+          html+="<div class='tm-block'>";
+          html+="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>";
+          html+="<div style='font-weight:800;color:"+GD+";font-size:13px'>Texto "+romanNum(i+1)+"</div>";
+          html+="<button onclick='removeTextoMotivador("+i+")' style='background:none;border:none;color:#ef4444;cursor:pointer;font-size:14px;font-weight:700'>&#10005; Remover</button>";
+          html+="</div>";
+          html+="<input class='inp' placeholder='Tipo (ex: Citação, Trecho jornalístico, Lei, Dado estatístico)' value='"+escAttr(tm.tipo)+"' oninput='updTextoMotivador("+i+",\"tipo\",this.value)' style='margin-bottom:8px;font-size:13px'>";
+          html+="<textarea class='textarea' placeholder='Conteúdo do texto motivador...' oninput='updTextoMotivador("+i+",\"conteudo\",this.value)' style='min-height:80px;margin-bottom:8px'>"+escHTML(tm.conteudo)+"</textarea>";
+          html+="<input class='inp' placeholder='Fonte (ex: Constituição Federal, art. 226 § 8º)' value='"+escAttr(tm.fonte)+"' oninput='updTextoMotivador("+i+",\"fonte\",this.value)' style='font-size:13px'>";
+          html+="</div>";
+        });
+
+        // QUESTÕES (lista de blocos)
+        html+="<div style='display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px'>";
+        html+="<div style='font-size:11px;font-weight:800;color:#555;letter-spacing:1px'>&#10067; QUESTÕES (opcional)</div>";
+        html+="<button onclick='addQuestao()' class='btn btn-sm' style='background:#fef3c7;color:#b45309;border:none'>+ Adicionar questão</button>";
+        html+="</div>";
+        if(!_novoTema.questoes.length){
+          html+="<div style='background:#f8fafb;border:1px dashed #d0d4de;border-radius:10px;padding:14px;text-align:center;color:#888;font-size:12px;margin-bottom:14px'>Nenhuma questão. Use se quiser adicionar perguntas de reflexão ou exercícios sobre o tema.</div>";
+        }
+        _novoTema.questoes.forEach(function(qz,i){
+          html+="<div class='tm-block' style='border-left:3px solid #f59e0b'>";
+          html+="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>";
+          html+="<div style='font-weight:800;color:"+GD+";font-size:13px'>Questão "+(i+1)+"</div>";
+          html+="<button onclick='removeQuestao("+i+")' style='background:none;border:none;color:#ef4444;cursor:pointer;font-size:14px;font-weight:700'>&#10005; Remover</button>";
+          html+="</div>";
+          html+="<textarea class='textarea' placeholder='Enunciado da questão...' oninput='updQuestao("+i+",this.value)' style='min-height:70px'>"+escHTML(qz.enunciado)+"</textarea>";
+          html+="</div>";
+        });
+
+        html+="<div style='display:flex;gap:8px;margin-top:18px'>";
+        html+="<button class='btn btn-green' onclick='saveTema()'>&#10003; Salvar Tema</button>";
+        html+="<button class='btn btn-sm' style='background:#f0f0f0;color:#555;border:none;white-space:nowrap' onclick='limparNovoTema()'>Limpar</button>";
+        html+="</div></div>";
+      }
     }
 
     if(S.tRT==="enviadas"){
@@ -787,6 +977,7 @@ function renderTeacher(){
         if(semRed.length){html+="<div style='font-size:11px;font-weight:700;color:#ef4444;letter-spacing:1px;margin:16px 0 8px'>AINDA NÃO ENVIARAM:</div>";semRed.forEach(function(st){html+="<div style='display:flex;justify-content:space-between;padding:10px 14px;background:#fff5f5;border-radius:10px;border:1px solid #fecaca;margin-bottom:6px'><span style='font-weight:700;font-size:13px;color:#333'>"+st.name+"</span><span style='font-size:11px;color:#888'>"+st.grade+"</span></div>";});}
       }
     }
+
     if(S.tRT==="filmes"){
       html+="<div class='card'><div style='font-weight:700;font-size:14px;color:"+GD+";margin-bottom:14px'>&#10133; Adicionar Filme</div><input class='inp' id='fTitulo' placeholder='Título' style='margin-bottom:10px'><input class='inp' id='fGenero' placeholder='Gênero' style='margin-bottom:10px'><textarea class='textarea' id='fDesc' placeholder='Sinopse...' style='margin-bottom:10px;min-height:70px'></textarea><textarea class='textarea' id='fRep' placeholder='Como usar como repertório...' style='margin-bottom:10px;min-height:70px'></textarea><input type='file' id='fImg' accept='image/*' style='margin-bottom:12px;font-size:13px'><button class='btn btn-green btn-sm' onclick='addFilme()'>Adicionar &#8594;</button></div>";
       (rd.filmes||[]).forEach(function(f,i){html+="<div class='card'><div style='display:flex;justify-content:space-between'><div style='font-weight:700'>"+f.titulo+"</div><button onclick='delFilme("+i+")' style='background:none;border:none;color:#ddd;cursor:pointer;font-size:18px'>&#128465;</button></div></div>";});
@@ -801,6 +992,7 @@ function renderTeacher(){
   html+="</div></div>";
   return html;
 }
+
 // ===== AÇÕES =====
 
 function toggleAtvAluno(stId){var sel=Object.assign({},S.novaAtvAlunos||{});if(sel[stId])delete sel[stId];else sel[stId]=true;set({novaAtvAlunos:sel});}
@@ -852,9 +1044,9 @@ function delAtv(chKey){
   db.ref('reforco/atividades/'+chKey).remove().then(function(){dbLoad().then(function(data){S.db=data;showFlash('Removida!','#ef4444');render();});});
 }
 
-// ===== FOTO REDAÇÃO (aluno) =====
-function uploadFoto(){
-  var file=document.getElementById("rFoto").files[0];if(!file)return;
+// ===== FOTO REDAÇÃO POR TEMA (aluno) =====
+function uploadFotoRed(temaId){
+  var file=document.getElementById("rFoto_"+temaId).files[0];if(!file)return;
   showFlash("Comprimindo foto...","#f59e0b");
   var reader=new FileReader();
   reader.onload=function(e){
@@ -863,24 +1055,34 @@ function uploadFoto(){
       var maxW=1200,maxH=1600,w=img.width,h=img.height;
       if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
       var canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;canvas.getContext("2d").drawImage(img,0,0,w,h);
-      _fotoRedBuf=canvas.toDataURL("image/jpeg",0.75);
-      var prev=document.getElementById("fotoPreview");
-      if(prev)prev.innerHTML="<img src='"+_fotoRedBuf+"' style='width:100%;max-height:200px;object-fit:contain;border-radius:8px;margin-bottom:10px;border:1px solid #86efac'><div style='font-size:12px;color:#16a34a;font-weight:700;margin-bottom:8px'>&#10003; Foto pronta para enviar!</div>";
+      _fotoRedBuf[temaId]=canvas.toDataURL("image/jpeg",0.75);
+      var prev=document.getElementById("fotoPreview_"+temaId);
+      if(prev)prev.innerHTML="<img src='"+_fotoRedBuf[temaId]+"' style='width:100%;max-height:200px;object-fit:contain;border-radius:8px;margin-bottom:10px;border:1px solid #86efac'><div style='font-size:12px;color:#16a34a;font-weight:700;margin-bottom:8px'>&#10003; Foto pronta para enviar!</div>";
       showFlash("Foto pronta! Clique em Enviar.");
     };img.src=e.target.result;
   };reader.readAsDataURL(file);
 }
 
-function saveRedacao(){
+function saveRedacao(temaId){
   var st=S.student;
-  var texto=document.getElementById("rTexto")?document.getElementById("rTexto").value:"";
-  var tipo=document.getElementById("rTipo")?document.getElementById("rTipo").value:"";
-  var foto=_fotoRedBuf||"";
+  var textoEl=document.getElementById("rTexto_"+temaId);
+  var tipoEl=document.getElementById("rTipo_"+temaId);
+  var texto=textoEl?textoEl.value:"";
+  var tipo=tipoEl?tipoEl.value:"";
+  var foto=_fotoRedBuf[temaId]||"";
   if(!texto&&!foto){showFlash("Escreva ou envie uma foto da redação!","#ef4444");return;}
   if(!st.redacoes)st.redacoes=[];
-  var temaAtualRed=S.db&&S.db.redacao&&S.db.redacao.tema&&S.db.redacao.tema.titulo?S.db.redacao.tema.titulo:"";
-  st.redacoes.push({id:genRedId(),data:today(),tipo:tipo,texto:texto,foto:foto,correcao:"",nota:"",tema:temaAtualRed});
-  dbSaveSt(st.id,st).then(function(){S.student=st;_fotoRedBuf=null;dbLoad().then(function(data){S.db=data;showFlash("Redação enviada! O professor já pode ver ♥");render();});});
+  // Buscar título do tema
+  var rd=S.db&&S.db.redacao?S.db.redacao:{};
+  var temaObj=(rd.temas||[]).find(function(t){return t.id===temaId;});
+  var temaTitulo=temaObj?temaObj.titulo:"";
+  st.redacoes.push({id:genRedId(),data:today(),tipo:tipo||(temaObj&&temaObj.tipo)||"",texto:texto,foto:foto,correcao:"",nota:"",tema:temaTitulo,temaId:temaId});
+  dbSaveSt(st.id,st).then(function(){
+    S.student=st;
+    _fotoRedBuf[temaId]=null;
+    _redSubBuf[temaId]=null;
+    dbLoad().then(function(data){S.db=data;set({alunoEnviarTema:null});showFlash("Redação enviada! O professor já pode ver ♥");});
+  });
 }
 
 // ===== CANCELAR REDAÇÃO DO ALUNO (professor) =====
@@ -889,7 +1091,7 @@ function cancelarRedAluno(stId,redId){
   dbLoad().then(function(data){
     var st=data.students[stId];
     if(!st||!st.redacoes){showFlash('Redação não encontrada!','#ef4444');return;}
-    st.redacoes=st.redacoes.filter(function(r){return r.id!==redId;});
+    st.redacoes=st.redacoes.filter(function(r,i){return r.id!==redId&&("red_"+i)!==redId;});
     dbSaveSt(stId,st).then(function(){S.db=data;showFlash('Redação cancelada! O aluno pode enviar novamente.','#f59e0b');render();});
   });
 }
@@ -910,7 +1112,7 @@ function salvarCorrecaoRed(stId,redId){
   });
 }
 
-// ===== FOTO ATIVIDADE (aluno) - Atualiza preview SEM re-renderizar =====
+// ===== FOTO ATIVIDADE =====
 function uploadRespFoto(ak){
   var file=document.getElementById('rfoto_'+ak);if(!file||!file.files[0])return;
   var f=file.files[0];
@@ -927,7 +1129,6 @@ function uploadRespFoto(ak){
       if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
       var canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);
       _atvFoto[ak]=canvas.toDataURL('image/jpeg',qual);
-      // Atualiza preview diretamente no DOM, sem re-renderizar
       var prev=document.getElementById('prevAtv_'+ak);
       if(prev){prev.innerHTML="<img src='"+_atvFoto[ak]+"' style='width:100%;max-height:200px;object-fit:contain;border-radius:8px;border:2px solid #16a34a;margin-bottom:6px'><div style='font-size:12px;color:#16a34a;font-weight:700'>&#10003; Foto pronta! Clique em Enviar.</div>";}
       showFlash('Foto pronta!');
@@ -960,43 +1161,142 @@ function enviarFeedback(ak,stId){
   });
 }
 
-// ===== TEMAS =====
+// ===== TEMAS DE REDAÇÃO =====
+function addTextoMotivador(){_novoTema.textosMotivadores.push({tipo:"",conteudo:"",fonte:""});render();}
+function removeTextoMotivador(i){_novoTema.textosMotivadores.splice(i,1);render();}
+function updTextoMotivador(i,field,val){if(_novoTema.textosMotivadores[i])_novoTema.textosMotivadores[i][field]=val;}
+function addQuestao(){_novoTema.questoes.push({enunciado:""});render();}
+function removeQuestao(i){_novoTema.questoes.splice(i,1);render();}
+function updQuestao(i,val){if(_novoTema.questoes[i])_novoTema.questoes[i].enunciado=val;}
+function limparNovoTema(){if(!confirm('Limpar todos os campos do novo tema?'))return;_novoTema={titulo:"",tipo:"",comando:"",textosMotivadores:[],questoes:[]};render();}
+
 function saveTema(){
-  var titulo=document.getElementById("tTitulo").value||"";
-  var tipo=document.getElementById("tTipo").value||"";
-  var contexto=document.getElementById("tContexto").value||"";
-  if(!titulo){showFlash("Digite o tema!","#ef4444");return;}
+  var titulo=(_novoTema.titulo||"").trim();
+  if(!titulo){showFlash("Digite o título do tema!","#ef4444");return;}
+  var isEdit=_editTema!=null;
   dbLoad().then(function(data){
     if(!data.redacao)data.redacao={filmes:[],dicas:[],tema:{},temas:[]};
     if(!data.redacao.temas)data.redacao.temas=[];
-    if(!data.redacao.historicoTemas)data.redacao.historicoTemas=[];
-    var jaAtivo=data.redacao.temas.some(function(t){return t.titulo===titulo;});
-    if(jaAtivo){showFlash("Este tema já está na lista ativa!","#f59e0b");return;}
-    var novoTema={id:'t_'+Date.now(),titulo:titulo,tipo:tipo,contexto:contexto,data:today()};
-    data.redacao.temas.push(novoTema);
-    data.redacao.tema={titulo:titulo,tipo:tipo,contexto:contexto};
-    dbSet("redacao",data.redacao).then(function(){S.db=data;addNotifAuto("📝 Novo tema de redação postado!");showFlash("Tema adicionado!");render();});
+    if(!isEdit){
+      var jaAtivo=data.redacao.temas.some(function(t){return t.titulo===titulo;});
+      if(jaAtivo){showFlash("Já existe um tema ativo com esse título!","#f59e0b");return;}
+    }
+    var dadosTema={
+      titulo:titulo,
+      tipo:_novoTema.tipo||"",
+      comando:(_novoTema.comando||"").trim(),
+      textosMotivadores:(_novoTema.textosMotivadores||[]).filter(function(t){return t.conteudo&&t.conteudo.trim();}),
+      questoes:(_novoTema.questoes||[]).filter(function(q){return q.enunciado&&q.enunciado.trim();})
+    };
+    if(isEdit){
+      // Atualizar tema existente preservando aberto/data/id
+      var idx=data.redacao.temas.findIndex(function(t){return t.id===_editTema;});
+      if(idx>=0){
+        var aberto=data.redacao.temas[idx].aberto!==false;
+        var dataOrig=data.redacao.temas[idx].data;
+        data.redacao.temas[idx]=Object.assign({},data.redacao.temas[idx],dadosTema,{aberto:aberto,data:dataOrig});
+      }
+    } else {
+      dadosTema.id='t_'+Date.now();
+      dadosTema.aberto=true;
+      dadosTema.data=today();
+      data.redacao.temas.push(dadosTema);
+      data.redacao.tema={titulo:titulo,tipo:dadosTema.tipo,contexto:""};
+    }
+    dbSet("redacao",data.redacao).then(function(){
+      S.db=data;
+      _novoTema={titulo:"",tipo:"",comando:"",textosMotivadores:[],questoes:[]};
+      _editTema=null;
+      if(!isEdit)addNotifAuto("📝 Novo tema de redação disponível!");
+      showFlash(isEdit?"Tema atualizado!":"Tema adicionado e aberto para envios!");
+      set({profTemaSub:"ativos"});
+    });
+  });
+}
+
+function toggleTemaAberto(tId){
+  dbLoad().then(function(data){
+    if(data.redacao&&data.redacao.temas){
+      data.redacao.temas.forEach(function(t){if(t.id===tId)t.aberto=t.aberto===false;});
+      dbSet('redacao',data.redacao).then(function(){
+        S.db=data;
+        var t=data.redacao.temas.find(function(x){return x.id===tId;});
+        if(t&&t.aberto)addNotifAuto("📝 Tema reaberto: "+t.titulo);
+        showFlash(t&&t.aberto?'Tema aberto para envios!':'Tema fechado.',t&&t.aberto?G:'#f59e0b');
+        render();
+      });
+    }
+  });
+}
+
+function arquivarTema(tId){
+  if(!confirm('Arquivar este tema? Ele sairá da lista ativa e irá para o arquivo. Redações já enviadas continuam salvas.'))return;
+  dbLoad().then(function(data){
+    if(data.redacao&&data.redacao.temas){
+      var temArq=data.redacao.temas.find(function(t){return t.id===tId;});
+      if(temArq){
+        if(!data.redacao.historicoTemas)data.redacao.historicoTemas=[];
+        var jaHist=data.redacao.historicoTemas.some(function(t){return t.titulo===temArq.titulo;});
+        if(!jaHist)data.redacao.historicoTemas.push(Object.assign({},temArq));
+      }
+      data.redacao.temas=data.redacao.temas.filter(function(t){return t.id!==tId;});
+      dbSet('redacao',data.redacao).then(function(){S.db=data;showFlash('Tema arquivado!','#f59e0b');render();});
+    }
   });
 }
 
 function removerTemaAtivo(tId){
-  if(!confirm('Remover este tema da lista?'))return;
+  if(!confirm('Excluir definitivamente este tema?\n\nObs: As redações já enviadas pelos alunos continuam preservadas.'))return;
   dbLoad().then(function(data){
     if(data.redacao&&data.redacao.temas){
-      // Guardar no histórico antes de remover
-      var temRem=data.redacao.temas.find(function(t){return t.id===tId;});
-      if(temRem){
-        if(!data.redacao.historicoTemas)data.redacao.historicoTemas=[];
-        var jaHist=data.redacao.historicoTemas.some(function(t){return t.titulo===temRem.titulo;});
-        if(!jaHist)data.redacao.historicoTemas.push(Object.assign({},temRem));
-      }
       data.redacao.temas=data.redacao.temas.filter(function(t){return t.id!==tId;});
-      if(data.redacao.temas.length>0)data.redacao.tema=data.redacao.temas[data.redacao.temas.length-1];
-      else data.redacao.tema={};
-      dbSet('redacao',data.redacao).then(function(){S.db=data;showFlash('Tema removido e arquivado!','#f59e0b');render();});
+      dbSet('redacao',data.redacao).then(function(){S.db=data;showFlash('Tema excluído!','#ef4444');render();});
     }
   });
 }
+
+function reativarTemaHist(idx){
+  dbLoad().then(function(data){
+    if(data.redacao&&data.redacao.historicoTemas&&data.redacao.historicoTemas[idx]){
+      var t=Object.assign({},data.redacao.historicoTemas[idx]);
+      if(!t.id)t.id='t_'+Date.now();
+      t.aberto=true;
+      if(!data.redacao.temas)data.redacao.temas=[];
+      var jaExiste=data.redacao.temas.some(function(x){return x.titulo===t.titulo;});
+      if(jaExiste){showFlash('Este tema já está ativo!','#f59e0b');return;}
+      data.redacao.temas.push(t);
+      data.redacao.historicoTemas.splice(idx,1);
+      dbSet('redacao',data.redacao).then(function(){S.db=data;showFlash('Tema reativado!');render();});
+    }
+  });
+}
+
+function delTemaHist(idx){
+  if(!confirm('Apagar este tema do arquivo permanentemente?'))return;
+  dbLoad().then(function(data){
+    if(data.redacao&&data.redacao.historicoTemas){
+      data.redacao.historicoTemas.splice(idx,1);
+      dbSet('redacao',data.redacao).then(function(){S.db=data;showFlash('Apagado!','#ef4444');render();});
+    }
+  });
+}
+
+function editTema(tId){
+  var t=null;
+  if(S.db&&S.db.redacao&&S.db.redacao.temas)t=S.db.redacao.temas.find(function(x){return x.id===tId;});
+  if(!t){showFlash('Tema não encontrado!','#ef4444');return;}
+  _novoTema={
+    titulo:t.titulo||"",
+    tipo:t.tipo||"",
+    comando:t.comando||"",
+    textosMotivadores:(t.textosMotivadores||[]).map(function(x){return Object.assign({},x);}),
+    questoes:(t.questoes||[]).map(function(x){return Object.assign({},x);})
+  };
+  _editTema=tId;
+  set({profTemaSub:"novo"});
+  showFlash("Editando tema. Salve para confirmar.");
+}
+
 
 window.tLogin=tLogin;window.go=go;window.sLogin=sLogin;window.loginExisting=loginExisting;window.loginParent=loginParent;
 
